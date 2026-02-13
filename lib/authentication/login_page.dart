@@ -40,7 +40,7 @@ class LoginPageState extends State<LoginPage> {
 
     } on FirebaseAuthException catch (e) {
       showGlobalSnackBar(e.code);
-      
+
     } finally {
       setState(() => isLoading = false);
     }
@@ -48,68 +48,71 @@ class LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Center(
-            child: SingleChildScrollView(
-              child: Container(
-                padding: const EdgeInsets.all(25),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Column(
-                  spacing: 20,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const AuthHeader(
-                      title: "Pedometer & ",
-                      highlightTitle: "Workout",
-                      subtitle: "ยินดีต้อนรับสู่แอพสุขภาพและการออกกำลังกาย",
-                    ),
-                    Column(
-                      children: [
-                        CustomTextField(
-                          label: 'อีเมล',
-                          controller: _emailController,
-                        ),
-                        CustomTextField(
-                          label: 'รหัสผ่าน',
-                          controller: _passwordController,
-                          isObscure: true,
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        PrimaryButton(
-                          text: "เข้าสู่ระบบ",
-                          onTap: _signIn,
-                          isLoading: isLoading,
-                        ),
-                      ],
-                    ),
-
-                    AuthSwitchLink(
-                      text: 'ยังไม่เป็นสมาชิก?',
-                      linkText: 'สมัครสมาชิก',
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RegisterPage(),
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        body: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                child: Container(
+                  padding: const EdgeInsets.all(25),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                  ),
+                  child: Column(
+                    spacing: 20,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const AuthHeader(
+                        title: "Pedometer & ",
+                        highlightTitle: "Workout",
+                        subtitle: "ยินดีต้อนรับสู่แอพสุขภาพและการออกกำลังกาย",
+                      ),
+                      Column(
+                        children: [
+                          CustomTextField(
+                            label: 'อีเมล',
+                            controller: _emailController,
+                          ),
+                          CustomTextField(
+                            label: 'รหัสผ่าน',
+                            controller: _passwordController,
+                            isObscure: true,
+                          ),
+      
+                          const SizedBox(height: 10),
+      
+                          PrimaryButton(
+                            text: "เข้าสู่ระบบ",
+                            onTap: _signIn,
+                            isLoading: isLoading,
+                          ),
+                        ],
+                      ),
+      
+                      AuthSwitchLink(
+                        text: 'ยังไม่เป็นสมาชิก?',
+                        linkText: 'สมัครสมาชิก',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterPage(),
+                          ),
                         ),
                       ),
-                    ),
-
-                    AuthDivider(),
-
-                    GoogleSigninButton(),
-                  ],
+      
+                      AuthDivider(),
+      
+                      GoogleSigninButton(),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
