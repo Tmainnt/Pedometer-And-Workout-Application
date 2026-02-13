@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
+import 'package:pedometer_application/authentication/login_page.dart';
+import 'package:pedometer_application/utils/show_snack_bar.dart';
+import 'package:pedometer_application/widget/auth_devider.dart';
+import 'package:pedometer_application/widget/auth_header.dart';
+import 'package:pedometer_application/widget/auth_switch_link.dart';
+import 'package:pedometer_application/widget/custom_text_field.dart';
+import 'package:pedometer_application/widget/google_signin_button.dart';
+import 'package:pedometer_application/widget/primary_button.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -16,9 +23,13 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  bool isLoading = false;
+
   Future<void> _signUp() async {
+    setState(() => isLoading = true);
+
     if (_passwordController.text != _confirmPasswordController.text) {
-      _showSnackBar("Password is not same");
+      showGlobalSnackBar("Password is not same");
       return;
     }
 
@@ -31,40 +42,18 @@ class _RegisterPageState extends State<RegisterPage> {
 
       await userCredential.user?.updateDisplayName(_nameController.text.trim());
 
-      print("register successfully");
+      showGlobalSnackBar("register successfully");
+
+      _nameController.clear();
+      _emailController.clear();
+      _passwordController.clear();
+      _confirmPasswordController.clear();
     } on FirebaseAuthException catch (e) {
-      _showSnackBar(e.message ?? "Error happenning");
+      showGlobalSnackBar(e.message ?? "Error happenning");
+
+    } finally {
+      setState(() => isLoading = false);
     }
-  }
-
-  Future<void> _signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-      if (googleUser == null) {
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      await FirebaseAuth.instance.signInWithCredential(credential);
-
-      print("Google login successfully");
-    } catch (e) {
-      print("Error during Google Sign-In: $e");
-    _showSnackBar("Error happen: ${e.toString()}");
-    }
-  }
-
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -83,126 +72,55 @@ class _RegisterPageState extends State<RegisterPage> {
                     borderRadius: BorderRadius.circular(25),
                   ),
                   child: Column(
+                    spacing: 20,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      const AuthHeader(
+                        title: "สมัคร",
+                        highlightTitle: "สมาชิก",
+                        subtitle: "สมัครสมาชิกเพื่อเริ่มดูแลสุขภาพ",
+                      ),
+                      Column(
                         children: [
-                          const Text(
-                            "สมัคร",
-                            style: TextStyle(
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          CustomTextField(
+                            label: 'ชื่อผู้ใช้',
+                            controller: _nameController,
                           ),
-                          const Text(
-                            "สมาชิก",
-                            style: TextStyle(
-                              color: Colors.orange,
-                              fontSize: 30,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          CustomTextField(
+                            label: 'อีเมล',
+                            controller: _emailController,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        "สมัครสมาชิกเพื่อเริ่มดูแลสุขภาพ",
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 25),
-                      _buildTextField('ชื่อผู้ใช้', _nameController),
-                      _buildTextField('อีเมล', _emailController),
-                      _buildTextField('รหัสผ่าน', _passwordController, isObscure: true),
-                      _buildTextField('ยืนยันรหัสผ่าน', _confirmPasswordController, isObscure: true),
+                          CustomTextField(
+                            label: 'รหัสผ่าน',
+                            controller: _passwordController,
+                            isObscure: true,
+                          ),
+                          CustomTextField(
+                            label: 'ยืนยันรหัสผ่าน',
+                            controller: _confirmPasswordController,
+                            isObscure: true,
+                          ),
 
-      
-                      const SizedBox(height: 25),
-      
-                      GestureDetector(
-                        onTap: _signUp,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 15),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [
-                                Color.fromARGB(255, 126, 140, 253),
-                                Color(0xFFB599FF),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              "สมัครสมาชิก",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                              ),
-                            ),
+                          const SizedBox(height: 10),
+
+                          PrimaryButton(text: "สมัครสมาชิก", onTap: _signUp, isLoading: isLoading,),
+                        ],
+                      ),
+
+                      AuthSwitchLink(
+                        text: 'เป็นสมาชิกอยู่แล้ว?',
+                        linkText: 'เข้าสู่ระบบ',
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LoginPage(),
                           ),
                         ),
                       ),
-      
-                      const SizedBox(height: 20),
-      
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text("เป็นสมาชิกแล้ว?"),
-                          InkWell(
-                            child: const Text(
-                              "เข้าสู่ระบบ",
-                              style: TextStyle(
-                                color: Colors.orange,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20,),
-                      Row(
-                        children: [
-                          const Expanded(
-                            child: Divider(thickness: 1, color: Colors.grey,), 
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('or', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold),),
-                          ),
-                          const Expanded(
-                            child: Divider(thickness: 1, color: Colors.grey,), 
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20,),
-                      OutlinedButton(
-                        onPressed: _signInWithGoogle, 
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.shade300),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          backgroundColor: Colors.white,
-                        ),
-                        child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/google_logo.png',
-                                height: 24,
-                              ),
-                              const SizedBox(width: 12,),
-                              const Text("ดำเนินการต่อโดยใช้ Google", style: TextStyle(
-                                color: Colors.black87,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                ),)
-                            ],
-                        ))
+
+                      AuthDivider(),
+
+                      GoogleSigninButton(),
                     ],
                   ),
                 ),
@@ -211,60 +129,6 @@ class _RegisterPageState extends State<RegisterPage> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    bool isObscure = false,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: const Color.fromARGB(255, 138, 137, 137),
-                spreadRadius: 1,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: controller,
-            obscureText: isObscure,
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 15,
-                vertical: 12,
-              ),
-
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: const BorderSide(color: Colors.black, width: 1.2),
-              ),
-
-              enabledBorder: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: const Color.fromARGB(255, 138, 138, 138),
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 15),
-      ],
     );
   }
 }

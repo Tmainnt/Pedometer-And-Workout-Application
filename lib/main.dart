@@ -3,6 +3,7 @@ import 'package:pedometer_application/authentication/register_page.dart';
 import 'package:firebase_core/firebase_core.dart'; 
 import 'firebase_options.dart';
 
+final GlobalKey<ScaffoldMessengerState> messengerKey = GlobalKey<ScaffoldMessengerState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -15,6 +16,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: RegisterPage());
+    return MaterialApp(
+      scaffoldMessengerKey: messengerKey,
+      home: RegisterPage());
   }
 }
