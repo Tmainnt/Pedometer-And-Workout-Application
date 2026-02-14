@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pedometer_application/authentication/login_page.dart';
 import 'package:pedometer_application/utils/show_snack_bar.dart';
-import 'package:pedometer_application/widget/auth_devider.dart';
-import 'package:pedometer_application/widget/auth_header.dart';
-import 'package:pedometer_application/widget/auth_switch_link.dart';
-import 'package:pedometer_application/widget/custom_text_field.dart';
-import 'package:pedometer_application/widget/google_signin_button.dart';
-import 'package:pedometer_application/widget/primary_button.dart';
+import 'package:pedometer_application/widget/auth/auth_devider.dart';
+import 'package:pedometer_application/widget/auth/auth_header.dart';
+import 'package:pedometer_application/widget/auth/auth_switch_link.dart';
+import 'package:pedometer_application/widget/auth/custom_text_field.dart';
+import 'package:pedometer_application/widget/auth/google_signin_button.dart';
+import 'package:pedometer_application/widget/auth/primary_button.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -43,6 +43,10 @@ class _RegisterPageState extends State<RegisterPage> {
       await userCredential.user?.updateDisplayName(_nameController.text.trim());
 
       showGlobalSnackBar("register successfully");
+
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
 
       _nameController.clear();
       _emailController.clear();

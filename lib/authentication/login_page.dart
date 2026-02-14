@@ -2,12 +2,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/authentication/register_page.dart';
 import 'package:pedometer_application/utils/show_snack_bar.dart';
-import 'package:pedometer_application/widget/auth_devider.dart';
-import 'package:pedometer_application/widget/auth_header.dart';
-import 'package:pedometer_application/widget/auth_switch_link.dart';
-import 'package:pedometer_application/widget/custom_text_field.dart';
-import 'package:pedometer_application/widget/google_signin_button.dart';
-import 'package:pedometer_application/widget/primary_button.dart';
+import 'package:pedometer_application/widget/auth/auth_devider.dart';
+import 'package:pedometer_application/widget/auth/auth_header.dart';
+import 'package:pedometer_application/widget/auth/auth_switch_link.dart';
+import 'package:pedometer_application/widget/auth/custom_text_field.dart';
+import 'package:pedometer_application/widget/auth/google_signin_button.dart';
+import 'package:pedometer_application/widget/auth/primary_button.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -38,9 +38,12 @@ class LoginPageState extends State<LoginPage> {
 
       showGlobalSnackBar("login successfully");
 
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+
     } on FirebaseAuthException catch (e) {
       showGlobalSnackBar(e.code);
-
     } finally {
       setState(() => isLoading = false);
     }
@@ -81,9 +84,9 @@ class LoginPageState extends State<LoginPage> {
                             controller: _passwordController,
                             isObscure: true,
                           ),
-      
+
                           const SizedBox(height: 10),
-      
+
                           PrimaryButton(
                             text: "เข้าสู่ระบบ",
                             onTap: _signIn,
@@ -91,7 +94,7 @@ class LoginPageState extends State<LoginPage> {
                           ),
                         ],
                       ),
-      
+
                       AuthSwitchLink(
                         text: 'ยังไม่เป็นสมาชิก?',
                         linkText: 'สมัครสมาชิก',
@@ -102,9 +105,9 @@ class LoginPageState extends State<LoginPage> {
                           ),
                         ),
                       ),
-      
+
                       AuthDivider(),
-      
+
                       GoogleSigninButton(),
                     ],
                   ),
