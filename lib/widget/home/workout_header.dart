@@ -20,7 +20,7 @@ class WorkoutStatsHeader extends StatelessWidget {
     return Column(
       children: [
         Text(
-          '$distance km',
+          '${distance.toStringAsFixed(2)} km',
           style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
         ),
         Row(
@@ -28,12 +28,12 @@ class WorkoutStatsHeader extends StatelessWidget {
           children: [
             StatItem(
               label: "Pace",
-              value: '$pace min/km',
+              value: '${pace.toStringAsFixed(2)} min/km',
               icon: Icons.timer_outlined,
             ),
             StatItem(
               label: "kcal",
-              value: '$kcal',
+              value: kcal.toStringAsFixed(2),
               icon: Icons.local_fire_department_outlined,
             ),
             StatItem(

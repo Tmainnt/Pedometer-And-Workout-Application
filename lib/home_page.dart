@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pedometer_application/services/runtime_tracking_service.dart';
+import 'package:pedometer_application/utils/show_snack_bar.dart';
 import 'package:pedometer_application/widget/home/list_heath_stat_item.dart';
 import 'package:pedometer_application/widget/home/pedometer_app_bar.dart';
 import 'package:pedometer_application/widget/home/running_map_card.dart';
@@ -12,7 +14,45 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
+  final RuntimeTrackingService _trackingService = RuntimeTrackingService();
+
   bool _isTracking = false;
+  double _currentDistanceKm = 0.0;
+  int _currentSeconds = 0;
+  String _currentPace = "0:00";
+
+  void _handleToggleTracking() async {
+    bool hasPermission = await _trackingService.checkPermission();
+
+    if (!hasPermission) {
+      if (mounted) {
+        showGlobalSnackBar("กรุณาอนุญาติการเข้าถึงตำแหน่ง");
+      }
+      return;
+    }
+
+    if (!_isTracking) {
+      _trackingService.startTracking(
+        onUpdate: (distance, time, pace) {
+          setState(() {
+            _currentDistanceKm = distance / 1000;
+            _currentSeconds = time;
+            _currentPace = pace;
+          });
+        },
+      );
+    } else {
+      _trackingService.stopTracking();
+    }
+
+    setState(() => _isTracking = !_isTracking);
+  }
+
+  @override
+  void dispose() {
+    _trackingService.stopTracking();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +99,14 @@ class HomePageState extends State<HomePage> {
               child: Column(
                 spacing: 20,
                 children: [
-                  WorkoutStatsHeader(distance: 6.15, pace: 5.51, kcal: 300, totalSeconds: 1500),
+                  WorkoutStatsHeader(
+                    distance: _currentDistanceKm,
+                    pace:
+                        double.tryParse(_currentPace.replaceAll(':', '.')) ??
+                        0.0,
+                    kcal: (_currentDistanceKm * 60),
+                    totalSeconds: _currentSeconds,
+                  ),
                   const RunningMapCard(),
                 ],
               ),
@@ -74,11 +121,7 @@ class HomePageState extends State<HomePage> {
 
   Widget _buildActionButton() {
     return ElevatedButton.icon(
-      onPressed: () {
-        setState(() {
-          _isTracking = !_isTracking;
-        });
-      },
+      onPressed: _handleToggleTracking,
       icon: Icon(_isTracking ? Icons.pause : Icons.play_arrow, size: 40),
       label: Text(_isTracking ? "หยุดชั่วคราว" : "เริ่มวิ่ง"),
     );
@@ -112,9 +155,3 @@ class HomePageState extends State<HomePage> {
     );
   }
 }
-
-
-
-
-
-
