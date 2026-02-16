@@ -27,6 +27,7 @@ class HomePageState extends State<HomePage> {
   double _currentDistanceKm = 0.0;
   int _currentSeconds = 0;
   String _currentPace = "0:00";
+  List<Map<String, double>> _currentRoute = [];
 
   @override
   void initState() {
@@ -69,11 +70,12 @@ class HomePageState extends State<HomePage> {
 
   void _startRunning() {
     _trackingService.startTracking(
-      onUpdate: (distance, time, pace) {
+      onUpdate: (distance, time, pace, route) {
         setState(() {
           _currentDistanceKm = distance / 1000;
           _currentSeconds = time;
           _currentPace = pace;
+          _currentRoute = route;
         });
       },
     );
@@ -86,7 +88,6 @@ class HomePageState extends State<HomePage> {
 
     if (_currentDistanceKm > 0.01) {
       Future.delayed(Duration.zero, () => _saveRunData());
-
     } else {
       _resetRunData();
       if (mounted) showGlobalSnackBar("ระยะทางสั้นเกินไป ไม่ได้บันทึก");
@@ -108,6 +109,7 @@ class HomePageState extends State<HomePage> {
         duration: _currentSeconds,
         calories: calories,
         pace: _currentPace,
+        route: _currentRoute
       );
 
       if (mounted) {
@@ -146,7 +148,7 @@ class HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const PedometerAppBar(title: 'Pedometer', subtitle: '& Workout',),
+      appBar: const PedometerAppBar(title: 'Pedometer', subtitle: '& Workout'),
       body: SingleChildScrollView(
         child: Column(
           children: [_buildMainTrackingCard(), _buildHealthStatsCard()],

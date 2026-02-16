@@ -7,6 +7,7 @@ class RuntimeTrackingService {
   Timer? _timer;
   Position? lastPosition;
   StreamSubscription<Position>? _positionStream;
+  List<Map<String, double>> _routePath = [];
 
   Future<bool> checkPermission() async {
     bool serviceEnabled;
@@ -34,13 +35,13 @@ class RuntimeTrackingService {
   }
 
   void startTracking({
-    required Function(double dist, int time, String pace) onUpdate,
+    required Function(double dist, int time, String pace, List<Map<String, double>> route) onUpdate,
   }) {
     _resetData();
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _totalSeconds++;
-      onUpdate(_totalDistance, _totalSeconds, _calculatePace());
+      onUpdate(_totalDistance, _totalSeconds, _calculatePace(), _routePath);
     });
 
     _positionStream =
@@ -59,13 +60,20 @@ class RuntimeTrackingService {
             );
 
             _totalDistance += distanceBetween;
+
+            _routePath.add({
+              'lat': position.latitude,
+              'lng': position.longitude,
+            });
           }
 
           lastPosition = position;
 
-          onUpdate(_totalDistance, _totalSeconds, _calculatePace());
+          onUpdate(_totalDistance, _totalSeconds, _calculatePace(), _routePath);
         });
   }
+
+  List<Map<String, double>> get currentRoute => _routePath;
 
   void stopTracking() {
     _timer?.cancel();
@@ -91,6 +99,7 @@ class RuntimeTrackingService {
   }
 
   void _resetData() {
+    _routePath = [];
     _totalDistance = 0.0;
     _totalSeconds = 0;
   }

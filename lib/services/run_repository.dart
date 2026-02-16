@@ -9,6 +9,7 @@ class RunRepository {
     required int duration,
     required double calories,
     required String pace,
+    required List<Map<String, double>> route,
   }) async {
     await _firestore.collection('runs').add({
       'userId': userId,
@@ -16,6 +17,7 @@ class RunRepository {
       'duration': duration,
       'calories': calories,
       'pace': pace,
+      'route': route,
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
