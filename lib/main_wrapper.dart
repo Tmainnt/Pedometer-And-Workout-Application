@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pedometer_application/history_page.dart';
 import 'package:pedometer_application/home_page.dart';
 import 'package:pedometer_application/widget/navbar/buttom_navbar.dart';
 
@@ -14,7 +15,7 @@ class _MainWrapperState extends State<MainWrapper> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const Center(child: Text("หน้า รายงาน")),
+    const HistoryPage(),
     const Center(child: Text("หน้า ท่าฝึก")),
     const Center(child: Text("หน้า ชุมชน")),
     const Center(child: Text("หน้า ห้องสนทนา")),

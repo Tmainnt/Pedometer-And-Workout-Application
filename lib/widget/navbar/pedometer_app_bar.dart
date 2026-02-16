@@ -2,7 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const PedometerAppBar({super.key});
+  final String title;
+  final String subtitle;
+  const PedometerAppBar({super.key, required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -10,7 +12,10 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 124, 139, 253), Color.fromARGB(255, 123, 75, 253)],
+            colors: [
+              Color.fromARGB(255, 124, 139, 253),
+              Color.fromARGB(255, 123, 75, 253),
+            ],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -19,14 +24,14 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
 
       leading: IconButton(
         onPressed: () {},
-        icon: const Icon(Icons.menu, color: Colors.white, size: 40,),
+        icon: const Icon(Icons.menu, color: Colors.white, size: 40),
       ),
 
       title: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'Pedometer',
+          Text(
+            title,
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -35,7 +40,7 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
 
           Text(
-            '& Workout',
+            subtitle,
             style: const TextStyle(
               color: Colors.orangeAccent,
               fontSize: 14,

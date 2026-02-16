@@ -19,4 +19,12 @@ class RunRepository {
       'timestamp': FieldValue.serverTimestamp(),
     });
   }
+
+  Stream<QuerySnapshot> getUserRuns(String userId) {
+    return _firestore
+        .collection('runs')
+        .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
 }
