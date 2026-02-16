@@ -1,4 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/web.dart';
+import 'package:pedometer_application/services/run_repository.dart';
 import 'package:pedometer_application/services/runtime_tracking_service.dart';
 import 'package:pedometer_application/utils/show_snack_bar.dart';
 import 'package:pedometer_application/widget/home/list_heath_stat_item.dart';
@@ -15,15 +18,41 @@ class HomePage extends StatefulWidget {
 
 class HomePageState extends State<HomePage> {
   final RuntimeTrackingService _trackingService = RuntimeTrackingService();
+  final RunRepository _runRepository = RunRepository();
 
+  var logger = Logger();
+
+  bool _isSaving = false;
   bool _isTracking = false;
   double _currentDistanceKm = 0.0;
   int _currentSeconds = 0;
   String _currentPace = "0:00";
 
-  void _handleToggleTracking() async {
-    bool hasPermission = await _trackingService.checkPermission();
+  @override
+  void initState() {
+    super.initState();
+    _signInAnonymously();
+  }
 
+  Future<void> _signInAnonymously() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+      } else {
+        logger.d("Login อยู่แล้ว UID: ${user.uid}");
+      }
+    } catch (e) {
+      logger.e("Login Error: $e");
+    }
+  }
+
+  void _handleToggleTracking() async {
+    if (_isSaving) {
+      return;
+    }
+
+    bool hasPermission = await _trackingService.checkPermission();
     if (!hasPermission) {
       if (mounted) {
         showGlobalSnackBar("กรุณาอนุญาติการเข้าถึงตำแหน่ง");
@@ -32,20 +61,79 @@ class HomePageState extends State<HomePage> {
     }
 
     if (!_isTracking) {
-      _trackingService.startTracking(
-        onUpdate: (distance, time, pace) {
-          setState(() {
-            _currentDistanceKm = distance / 1000;
-            _currentSeconds = time;
-            _currentPace = pace;
-          });
-        },
-      );
+      _startRunning();
     } else {
-      _trackingService.stopTracking();
+      _stopAndSaveRunning();
     }
+  }
 
-    setState(() => _isTracking = !_isTracking);
+  void _startRunning() {
+    _trackingService.startTracking(
+      onUpdate: (distance, time, pace) {
+        setState(() {
+          _currentDistanceKm = distance / 1000;
+          _currentSeconds = time;
+          _currentPace = pace;
+        });
+      },
+    );
+    setState(() => _isTracking = true);
+  }
+
+  void _stopAndSaveRunning() async {
+    _trackingService.stopTracking();
+    setState(() => _isTracking = false);
+
+    if (_currentDistanceKm > 0.01) {
+      Future.delayed(Duration.zero, () => _saveRunData());
+
+    } else {
+      _resetRunData();
+      if (mounted) showGlobalSnackBar("ระยะทางสั้นเกินไป ไม่ได้บันทึก");
+    }
+  }
+
+  Future<void> _saveRunData() async {
+    setState(() => _isSaving = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception("ไม่พบผู้ใช้งาน");
+      }
+      double calories = _currentDistanceKm * 60;
+      await _runRepository.saveRun(
+        userId: user.uid,
+        distance: _currentDistanceKm,
+        duration: _currentSeconds,
+        calories: calories,
+        pace: _currentPace,
+      );
+
+      if (mounted) {
+        showGlobalSnackBar(
+          "บันทึกสำเร็จ! ระยะทาง ${_currentDistanceKm.toStringAsFixed(2)} กม.",
+        );
+        _resetRunData();
+      }
+    } catch (e) {
+      logger.e("error saving $e");
+      if (mounted) {
+        showGlobalSnackBar("เกิดข้อผิดพลาด: $e");
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _resetRunData() {
+    setState(() {
+      _currentDistanceKm = 0.0;
+      _currentSeconds = 0;
+      _currentPace = "0:00";
+    });
   }
 
   @override
@@ -121,9 +209,19 @@ class HomePageState extends State<HomePage> {
 
   Widget _buildActionButton() {
     return ElevatedButton.icon(
-      onPressed: _handleToggleTracking,
-      icon: Icon(_isTracking ? Icons.pause : Icons.play_arrow, size: 40),
-      label: Text(_isTracking ? "หยุดชั่วคราว" : "เริ่มวิ่ง"),
+      onPressed: _isSaving ? null : _handleToggleTracking,
+      icon: _isSaving
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(_isTracking ? Icons.pause : Icons.play_arrow, size: 40),
+      label: Text(
+        _isSaving
+            ? "กำลังบันทึก..."
+            : (_isTracking ? "หยุดชั่วคราว" : "เริ่มวิ่ง"),
+      ),
     );
   }
 
