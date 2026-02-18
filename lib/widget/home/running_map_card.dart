@@ -1,8 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class RunningMapCard extends StatelessWidget {
-  const RunningMapCard({super.key});
+class RunningMapCard extends StatefulWidget {
+  final Set<Polyline> polylines;
+  final LatLng? currentPosition;
+
+  const RunningMapCard({
+    super.key,
+    required this.polylines,
+    this.currentPosition,
+  });
+
+  @override
+  State<StatefulWidget> createState() => _RunningMapCardState();
+}
+
+class _RunningMapCardState extends State<RunningMapCard> {
+  GoogleMapController? _mapController;
+  bool _autoFollow = true;
+
+  @override
+  void didUpdateWidget(covariant RunningMapCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (_mapController != null &&
+        widget.currentPosition != null &&
+        _autoFollow) {
+      if (oldWidget.currentPosition != widget.currentPosition) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLng(widget.currentPosition!),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,14 +50,24 @@ class RunningMapCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
-        child: const GoogleMap(
+        child: GoogleMap(
           initialCameraPosition: CameraPosition(
-            target: LatLng(13.7563, 100.5018),
+            target: widget.currentPosition ?? const LatLng(13.7563, 100.5018),
             zoom: 15,
           ),
+          onCameraMoveStarted: () => _autoFollow = false,
+          onMapCreated: (controller) {
+            _mapController = controller;
+          },
+          polylines: widget.polylines,
           zoomControlsEnabled: false,
           myLocationEnabled: true,
           myLocationButtonEnabled: true,
+          onTap: (_) {
+            setState(() {
+              _autoFollow = true;
+            });
+          },
         ),
       ),
     );

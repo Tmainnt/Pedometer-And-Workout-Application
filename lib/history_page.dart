@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:pedometer_application/run_detail_page.dart';
 import 'package:pedometer_application/services/run_repository.dart';
 import 'package:pedometer_application/widget/navbar/pedometer_app_bar.dart';
 import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
@@ -82,7 +84,7 @@ class HistoryPage extends StatelessWidget {
                   final data = docs[index].data() as Map<String, dynamic>;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: _buildHistoryItem(data),
+                    child: _buildHistoryItem(context, data),
                   );
                 }, childCount: docs.length),
               ),
@@ -180,7 +182,7 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildHistoryItem(Map<String, dynamic> data) {
+  Widget _buildHistoryItem(BuildContext context, Map<String, dynamic> data) {
     DateTime date = DateTime.now();
 
     if (data['timestamp'] != null) {
@@ -195,58 +197,91 @@ class HistoryPage extends StatelessWidget {
     final minute = (durationSecond / 60).floor();
     final second = durationSecond % 60;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.circular(15),
-              image: const DecorationImage(
-                image: NetworkImage("https://via.placeholder.com/150"),
-                fit: BoxFit.cover,
+    final List<dynamic> routeData = data['route'] ?? [];
+
+    final List<LatLng> polylinePoints = routeData.map((point) {
+      return LatLng(point['lat'] as double, point['lng'] as double);
+    }).toList();
+
+    CameraPosition? initialCamera;
+    if (polylinePoints.isNotEmpty) {
+      initialCamera = CameraPosition(target: polylinePoints.first, zoom: 15);
+    }
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => RunDetailPage(runData: data,)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 15),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.1),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE0E0E0),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: polylinePoints.isEmpty
+                  ? const Icon(Icons.location_off, color: Colors.grey)
+                  : GoogleMap(
+                      initialCameraPosition: initialCamera!,
+                      liteModeEnabled: true,
+                      zoomControlsEnabled: false,
+                      myLocationButtonEnabled: false,
+                      compassEnabled: false,
+                      mapToolbarEnabled: false,
+                      polylines: {
+                        Polyline(
+                          polylineId: PolylineId(data['timestamp'].toString()),
+                          points: polylinePoints,
+                          color: const Color(0xFF7E8CFD),
+                          width: 4,
+                          jointType: JointType.round,
+                        ),
+                      },
+                    ),
+            ),
+            const SizedBox(width: 15),
+
+            Expanded(
+              child: Column(
+                spacing: 8,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    dateStr,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                  Text(
+                    "${distance.toStringAsFixed(2)} km | $minute:$second นาที | ${cal.toInt()} kcal",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 18),
+                  ),
+                ],
               ),
             ),
-            child: const Icon(Icons.map, color: Colors.grey),
-          ),
-          const SizedBox(width: 15),
-
-          Expanded(
-            child: Column(
-              spacing: 8,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  dateStr,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                  ),
-                ),
-                Text(
-                  "${distance.toStringAsFixed(2)} km | $minute:$second นาที | ${cal.toInt()} kcal",
-                  style: TextStyle(color: Colors.grey[600], fontSize: 18),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-        ],
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }

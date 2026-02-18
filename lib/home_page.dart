@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:logger/web.dart';
 import 'package:pedometer_application/services/run_repository.dart';
 import 'package:pedometer_application/services/runtime_tracking_service.dart';
@@ -28,6 +29,8 @@ class HomePageState extends State<HomePage> {
   int _currentSeconds = 0;
   String _currentPace = "0:00";
   List<Map<String, double>> _currentRoute = [];
+  Set<Polyline> _polylines = {};
+  LatLng? _currentLatLng;
 
   @override
   void initState() {
@@ -76,6 +79,25 @@ class HomePageState extends State<HomePage> {
           _currentSeconds = time;
           _currentPace = pace;
           _currentRoute = route;
+          print("_currentDistanceKm $_currentDistanceKm");
+          if (route.isNotEmpty) {
+            print(
+              "📍 ข้อมูลมาแล้ว! จำนวนจุด: ${route.length} | พิกัดล่าสุด: ${route.last['lat']}, ${route.last['lng']}",
+            );
+
+            _currentLatLng = LatLng(route.last['lat']!, route.last['lng']!);
+
+            _polylines = {
+              Polyline(
+                polylineId: const PolylineId('running_path'),
+                points: route.map((p) => LatLng(p['lat']!, p['lng']!)).toList(),
+                color: const Color(0xFF7E8CFD),
+                width: 5,
+                startCap: Cap.roundCap,
+                endCap: Cap.roundCap,
+              ),
+            };
+          }
         });
       },
     );
@@ -83,6 +105,7 @@ class HomePageState extends State<HomePage> {
   }
 
   void _stopAndSaveRunning() async {
+    print(_currentRoute);
     _trackingService.stopTracking();
     setState(() => _isTracking = false);
 
@@ -109,7 +132,7 @@ class HomePageState extends State<HomePage> {
         duration: _currentSeconds,
         calories: calories,
         pace: _currentPace,
-        route: _currentRoute
+        route: _currentRoute,
       );
 
       if (mounted) {
@@ -135,6 +158,9 @@ class HomePageState extends State<HomePage> {
       _currentDistanceKm = 0.0;
       _currentSeconds = 0;
       _currentPace = "0:00";
+      _currentRoute = [];
+      _polylines = {};
+      _currentLatLng = null;
     });
   }
 
@@ -197,7 +223,10 @@ class HomePageState extends State<HomePage> {
                     kcal: (_currentDistanceKm * 60),
                     totalSeconds: _currentSeconds,
                   ),
-                  const RunningMapCard(),
+                  RunningMapCard(
+                    polylines: _polylines,
+                    currentPosition: _currentLatLng,
+                  ),
                 ],
               ),
             ),
