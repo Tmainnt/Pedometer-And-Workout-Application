@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pedometer_application/authentication/login_page.dart';
+import 'package:pedometer_application/services/user_repository.dart';
 import 'package:pedometer_application/utils/show_snack_bar.dart';
 import 'package:pedometer_application/widget/auth/auth_devider.dart';
 import 'package:pedometer_application/widget/auth/auth_header.dart';
@@ -23,6 +24,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
+  final UserRepository _userRepository = UserRepository();
+
   bool isLoading = false;
 
   Future<void> _signUp() async {
@@ -39,22 +42,32 @@ class _RegisterPageState extends State<RegisterPage> {
             email: _emailController.text.trim(),
             password: _passwordController.text.trim(),
           );
+      final user = userCredential.user;
 
-      await userCredential.user?.updateDisplayName(_nameController.text.trim());
+      if (user != null) {
+        await _userRepository.saveUser(
+          uid: user.uid,
+          username: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+        );
 
-      showGlobalSnackBar("register successfully");
+        await userCredential.user?.updateDisplayName(
+          _nameController.text.trim(),
+        );
 
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        showGlobalSnackBar("register successfully");
+
+        if (mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
+
+        _nameController.clear();
+        _emailController.clear();
+        _passwordController.clear();
+        _confirmPasswordController.clear();
       }
-
-      _nameController.clear();
-      _emailController.clear();
-      _passwordController.clear();
-      _confirmPasswordController.clear();
     } on FirebaseAuthException catch (e) {
       showGlobalSnackBar(e.message ?? "Error happenning");
-
     } finally {
       setState(() => isLoading = false);
     }
@@ -107,7 +120,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
                           const SizedBox(height: 10),
 
-                          PrimaryButton(text: "สมัครสมาชิก", onTap: _signUp, isLoading: isLoading,),
+                          PrimaryButton(
+                            text: "สมัครสมาชิก",
+                            onTap: _signUp,
+                            isLoading: isLoading,
+                          ),
                         ],
                       ),
 

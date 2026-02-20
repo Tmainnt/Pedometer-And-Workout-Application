@@ -1,9 +1,11 @@
 import 'dart:math';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:pedometer_application/widget/navbar/pedometer_app_bar.dart';
+import 'package:flutter/foundation.dart';
 
 class RunDetailPage extends StatelessWidget {
   final Map<String, dynamic> runData;
@@ -59,6 +61,20 @@ class RunDetailPage extends StatelessWidget {
     return paces;
   }
 
+  String _calculateMaxPace(List<double> paceData) {
+    final validPaces = paceData.where((p) => p > 0).toList();
+    if (validPaces.isEmpty) {
+      return '0:00';
+    }
+
+    double minPaceValue = validPaces.reduce((a, b) => a < b ? a : b);
+
+    int pMin = minPaceValue.floor();
+    int pSec = ((minPaceValue - pMin) * 60).round();
+
+    return "$pMin:${pSec.toString().padLeft(2, '0')}";
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<dynamic> routeData = runData['route'] ?? [];
@@ -84,6 +100,8 @@ class RunDetailPage extends StatelessWidget {
     String paceStr = runData['pace']?.toString() ?? "0:00";
     if (!paceStr.contains(':')) paceStr = "0:00";
 
+    final String maxPaceStr = _calculateMaxPace(paceData);
+
     Set<Marker> markers = {};
     if (polylinePoints.isNotEmpty) {
       markers.add(
@@ -105,13 +123,18 @@ class RunDetailPage extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: PedometerAppBar(title: 'รายละเอียดการวิ่ง', subtitle: ""),
+      appBar: PedometerAppBar(title: 'รายละเอียดการวิ่ง', isDetailPage: true,),
       body: SingleChildScrollView(
         child: Column(
           children: [
             SizedBox(
               height: 300,
               child: GoogleMap(
+                gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                  Factory<OneSequenceGestureRecognizer>(
+                    () => EagerGestureRecognizer(),
+                  ),
+                },
                 padding: const EdgeInsets.only(bottom: 20),
                 initialCameraPosition: CameraPosition(
                   target: polylinePoints.isNotEmpty
@@ -179,7 +202,7 @@ class RunDetailPage extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildBottomStat("เพซสูงสุด", "5:02", "/km"),
+                          _buildBottomStat("เพซสูงสุด", maxPaceStr, "min/km"),
                           _buildBottomStat("ก้าวเดิน", "1,250", "ก้าว"),
                           _buildBottomStat("ความสูงที่เพิ่มขึ้น", "12", "m"),
                         ],
@@ -355,7 +378,7 @@ class SimpleLineChartPainter extends CustomPainter {
     int divisions = 5;
     double fixedMaxPace = 10.0;
 
-     double getX(int index) =>
+    double getX(int index) =>
         leftMargin + (index * (graphWidth / (dataPoints.length - 1)));
     double getY(double value) => (value / fixedMaxPace) * graphHeight * 0.8;
 
@@ -363,11 +386,11 @@ class SimpleLineChartPainter extends CustomPainter {
       double val = i * (fixedMaxPace / divisions);
       double y = getY(val);
       _drawAxisLabel(canvas, val.toStringAsFixed(1), Offset(5, y - 6));
-      
+
       canvas.drawLine(
-        Offset(leftMargin, y), 
-        Offset(size.width, y), 
-        Paint()..color = Colors.grey.withValues(alpha: 0.1)
+        Offset(leftMargin, y),
+        Offset(size.width, y),
+        Paint()..color = Colors.grey.withValues(alpha: 0.1),
       );
     }
 
@@ -391,8 +414,6 @@ class SimpleLineChartPainter extends CustomPainter {
       Offset(size.width, graphHeight),
       axisPaint,
     );
-
- 
 
     final path = Path();
     path.moveTo(0, getY(dataPoints[0]));

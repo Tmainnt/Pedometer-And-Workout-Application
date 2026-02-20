@@ -21,7 +21,7 @@ class HistoryPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: PedometerAppBar(title: 'ประวัติการสิ่ง', subtitle: ''),
+      appBar: PedometerAppBar(title: 'ประวัติการสิ่ง'),
       body: StreamBuilder<QuerySnapshot>(
         stream: repo.getUserRuns(user.uid),
         builder: (context, snapshot) {

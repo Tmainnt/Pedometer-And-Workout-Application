@@ -4,7 +4,14 @@ import 'package:flutter/material.dart';
 class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final String subtitle;
-  const PedometerAppBar({super.key, required this.title, required this.subtitle});
+  final bool isDetailPage;
+
+  const PedometerAppBar({
+    super.key,
+    required this.title,
+    this.subtitle = '',
+    this.isDetailPage = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,8 +30,13 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
 
       leading: IconButton(
-        onPressed: () {},
-        icon: const Icon(Icons.menu, color: Colors.white, size: 40),
+        onPressed: () {
+          if (isDetailPage) {
+            Navigator.pop(context);
+          }
+        },
+        icon: Icon(
+          isDetailPage ? Icons.arrow_back_ios_new : Icons.menu, color: Colors.white, size: 40),
       ),
 
       title: Column(
@@ -39,18 +51,19 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
 
-          Text(
-            subtitle,
-            style: const TextStyle(
-              color: Colors.orangeAccent,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          if (subtitle.isNotEmpty)
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: Colors.orangeAccent,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
         ],
       ),
 
-      actions: [
+      actions: isDetailPage ? null :[
         IconButton(
           onPressed: () async {
             await FirebaseAuth.instance.signOut();
