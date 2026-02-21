@@ -10,6 +10,8 @@ import 'package:pedometer_application/widget/navbar/pedometer_app_bar.dart';
 import 'package:pedometer_application/widget/home/running_map_card.dart';
 import 'package:pedometer_application/widget/home/workout_header.dart';
 
+enum RunStatus { notStart, running, paused }
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -24,7 +26,8 @@ class HomePageState extends State<HomePage> {
   var logger = Logger();
 
   bool _isSaving = false;
-  bool _isTracking = false;
+  RunStatus _runStatus = RunStatus.notStart;
+
   double _currentDistanceKm = 0.0;
   int _currentSeconds = 0;
   String _currentPace = "0:00";
@@ -51,10 +54,8 @@ class HomePageState extends State<HomePage> {
     }
   }
 
-  void _handleToggleTracking() async {
-    if (_isSaving) {
-      return;
-    }
+  void _startRunning() async {
+    if (_isSaving) return;
 
     bool hasPermission = await _trackingService.checkPermission();
     if (!hasPermission) {
@@ -64,14 +65,8 @@ class HomePageState extends State<HomePage> {
       return;
     }
 
-    if (!_isTracking) {
-      _startRunning();
-    } else {
-      _stopAndSaveRunning();
-    }
-  }
+    setState(() => _runStatus = RunStatus.running);
 
-  void _startRunning() {
     _trackingService.startTracking(
       onUpdate: (distance, time, pace, route) {
         setState(() {
@@ -79,12 +74,7 @@ class HomePageState extends State<HomePage> {
           _currentSeconds = time;
           _currentPace = pace;
           _currentRoute = route;
-          print("_currentDistanceKm $_currentDistanceKm");
           if (route.isNotEmpty) {
-            print(
-              "📍 ข้อมูลมาแล้ว! จำนวนจุด: ${route.length} | พิกัดล่าสุด: ${route.last['lat']}, ${route.last['lng']}",
-            );
-
             _currentLatLng = LatLng(route.last['lat']!, route.last['lng']!);
 
             _polylines = {
@@ -101,13 +91,21 @@ class HomePageState extends State<HomePage> {
         });
       },
     );
-    setState(() => _isTracking = true);
+  }
+
+  void _pauseRunning() {
+    setState(() => _runStatus = RunStatus.paused);
+    _trackingService.pauseTracking();
+  }
+
+  void _resumeRunning() {
+    setState(() => _runStatus = RunStatus.running);
+    _trackingService.resumeTracking();
   }
 
   void _stopAndSaveRunning() async {
-    print(_currentRoute);
     _trackingService.stopTracking();
-    setState(() => _isTracking = false);
+    setState(() => _runStatus = RunStatus.notStart);
 
     if (_currentDistanceKm > 0.01) {
       Future.delayed(Duration.zero, () => _saveRunData());
@@ -239,20 +237,80 @@ class HomePageState extends State<HomePage> {
   }
 
   Widget _buildActionButton() {
-    return ElevatedButton.icon(
-      onPressed: _isSaving ? null : _handleToggleTracking,
-      icon: _isSaving
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(_isTracking ? Icons.pause : Icons.play_arrow, size: 40),
-      label: Text(
-        _isSaving
-            ? "กำลังบันทึก..."
-            : (_isTracking ? "หยุดชั่วคราว" : "เริ่มวิ่ง"),
-      ),
+    if (_runStatus == RunStatus.notStart) {
+      return SizedBox(
+        width: 200,
+        height: 60,
+        child: ElevatedButton.icon(
+          onPressed: _startRunning,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+          ),
+          label: const Text(
+            "เริ่มวิ่ง",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          icon: const Icon(Icons.play_arrow, size: 30,),
+        ),
+      );
+    }
+    return Row(
+      spacing: 15,
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 60,
+            child: ElevatedButton.icon(
+              onPressed: _runStatus == RunStatus.running
+                  ? _pauseRunning
+                  : _resumeRunning,
+              label: Text(
+                _runStatus == RunStatus.running ? 'หยุดชั่วคราว' : 'วิ่งต่อ',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              icon: Icon(
+                _runStatus == RunStatus.running
+                    ? Icons.pause
+                    : Icons.play_arrow,
+                size: 28,
+              ),
+            ),
+          ),
+        ),
+
+        Expanded(
+          child: SizedBox(
+            height: 60,
+            child: ElevatedButton.icon(
+              onPressed: _isSaving ? null : _stopAndSaveRunning,
+              label: Text(
+                _isSaving ? "กำลังบันทึก..." : "บันทึกผล",
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+             style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFA500), 
+                foregroundColor: Colors.white, 
+              ),
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                : const Icon(Icons.stop, size: 28),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

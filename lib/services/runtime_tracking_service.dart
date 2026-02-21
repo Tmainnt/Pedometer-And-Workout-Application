@@ -9,6 +9,9 @@ class RuntimeTrackingService {
   StreamSubscription<Position>? _positionStream;
   List<Map<String, double>> _routePath = [];
 
+  Function(double dist, int time, String pace, List<Map<String, double>> route)?
+  _onUpdateCallback;
+
   Future<bool> checkPermission() async {
     bool serviceEnabled;
     LocationPermission permission;
@@ -35,13 +38,30 @@ class RuntimeTrackingService {
   }
 
   void startTracking({
-    required Function(double dist, int time, String pace, List<Map<String, double>> route) onUpdate,
+    required Function(
+      double dist,
+      int time,
+      String pace,
+      List<Map<String, double>> route,
+    )
+    onUpdate,
   }) {
     _resetData();
+    _onUpdateCallback = onUpdate;
+    _startTimerAndStream();
+  }
 
+  void _startTimerAndStream() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _totalSeconds++;
-      onUpdate(_totalDistance, _totalSeconds, _calculatePace(), _routePath);
+      if (_onUpdateCallback != null) {
+        _onUpdateCallback!(
+          _totalDistance,
+          _totalSeconds,
+          _calculatePace(),
+          _routePath,
+        );
+      }
     });
 
     _positionStream =
@@ -60,20 +80,36 @@ class RuntimeTrackingService {
             );
 
             _totalDistance += distanceBetween;
-
-            _routePath.add({
-              'lat': position.latitude,
-              'lng': position.longitude,
-            });
           }
+          _routePath.add({'lat': position.latitude, 'lng': position.longitude});
 
           lastPosition = position;
 
-          onUpdate(_totalDistance, _totalSeconds, _calculatePace(), _routePath);
+          if (_onUpdateCallback != null) {
+            _onUpdateCallback!(
+              _totalDistance,
+              _totalSeconds,
+              _calculatePace(),
+              _routePath,
+            );
+          }
         });
   }
 
   List<Map<String, double>> get currentRoute => _routePath;
+
+  void pauseTracking() {
+    _timer?.cancel();
+    _positionStream?.cancel();
+
+    lastPosition = null;
+  }
+
+  void resumeTracking() {
+    if (_onUpdateCallback != null) {
+      _startTimerAndStream();
+    }
+  }
 
   void stopTracking() {
     _timer?.cancel();
@@ -81,6 +117,7 @@ class RuntimeTrackingService {
     _timer = null;
     _positionStream = null;
     lastPosition = null;
+    _onUpdateCallback = null;
   }
 
   String _calculatePace() {
