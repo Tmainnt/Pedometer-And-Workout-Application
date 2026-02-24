@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pedometer_application/models/post.dart';
 
 class PostPageService {
@@ -15,7 +14,7 @@ class PostPageService {
       return "${(day / 365).floor()} ปี";
     }
     if (day >= 30 || day >= 28) {
-      return "${day >= 30 ? (day / 30).floor : (day / 28).floor()} เดือน";
+      return "${day >= 30 ? (day / 30).floor : (day / 28).floor} เดือน";
     } // เช็คเดือน โดยเช็ค 30 และ 31 ก่อนจึงเช็ค เดือนกุมพาพันธ์
     if (day > 0) {
       return "$day วัน";
