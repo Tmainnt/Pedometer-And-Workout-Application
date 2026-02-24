@@ -59,7 +59,12 @@ class HomePageState extends State<HomePage> {
               child: Column(
                 spacing: 20,
                 children: [
-                  WorkoutStatsHeader(distance: 6.15, pace: 5.51, kcal: 300, totalSeconds: 1500),
+                  WorkoutStatsHeader(
+                    distance: 6.15,
+                    pace: 5.51,
+                    kcal: 300,
+                    totalSeconds: 1500,
+                  ),
                   const RunningMapCard(),
                 ],
               ),
@@ -112,9 +117,3 @@ class HomePageState extends State<HomePage> {
     );
   }
 }
-
-
-
-
-
-
