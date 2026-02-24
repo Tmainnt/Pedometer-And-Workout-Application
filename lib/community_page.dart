@@ -21,73 +21,61 @@ class CommunityPageState extends State<CommunityPage> {
 
   @override
   Widget build(BuildContext context) {
-    bool hasData = false;
     return Scaffold(
       appBar: PedometerAppBar(),
       body: StreamBuilder<DocumentSnapshot>(
         stream: firestoreService.getUserData(),
         builder: (context, snapshot) {
-          dynamic checkSnapshot = firestoreService.checkHasData(snapshot);
+          final checkSnapshot = firestoreService.checkHasData(snapshot);
           if (checkSnapshot != true) {
             return checkSnapshot;
-          } else {
-            hasData = true;
           }
 
-          if (hasData) {
-            var userData = snapshot.data!.data() as Map<String, dynamic>;
-            return SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Column(
-                children: [
-                  newPost(context, userData),
-                  StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                    stream: firestoreService.getPostData(),
-                    builder: (context, userPostSnapshot) {
-                      dynamic checkPostSnapshot = firestoreService.checkHasData(
-                        userPostSnapshot,
-                      );
-                      if (checkPostSnapshot != true) {
-                        return checkPostSnapshot;
-                      } else {
-                        hasData = true;
-                      }
+          final userData = snapshot.data!.data() as Map<String, dynamic>;
 
-                      if (hasData) {
-                        final List userPost = userPostSnapshot.data!.docs.map((
-                          doc,
-                        ) {
-                          doc.data();
-                        }).toList();
-                        return ListView.builder(
-                          itemBuilder: (context, index) {
-                            return Container(
-                              height: 354,
-                              decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: widgetColors.boxShadowColor(),
-                                  ),
-                                ],
-                              ),
-                              child: CreatePosts(
-                                userPost: Post(userPost[index]),
-                              ),
-                            );
-                          },
-                          itemCount: checkSnapshot.length,
-                        );
-                      } else {
-                        return Center(child: Text("ไม่พบข้อมูล"));
-                      }
-                    },
-                  ),
-                ],
-              ),
-            );
-          } else {
-            return Center(child: Text("ไม่พบข้อมูล"));
-          }
+          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: firestoreService.getPostData(),
+            builder: (context, postSnapshot) {
+              final checkPostSnapshot = firestoreService.checkHasData(
+                postSnapshot,
+              );
+              if (checkPostSnapshot != true) {
+                return checkPostSnapshot;
+              }
+
+              // userPost จะเป็น List ที่ด้านในเป็น Object Class Post
+              final userPost = postSnapshot.data!.docs
+                  .map((doc) => Post.fromFirestore(doc))
+                  .toList();
+
+              return ListView.builder(
+                itemCount: userPost.length + 1,
+                itemBuilder: (context, index) {
+                  // ตัวแรกคือ newPost
+                  if (index == 0) {
+                    return Column(
+                      children: [
+                        newPost(context, userData),
+                        const SizedBox(height: 10),
+                      ],
+                    );
+                  }
+
+                  final post = userPost[index - 1];
+                  if (post.content.isNotEmpty || post.imageUrl.isNotEmpty) {
+                    return Column(
+                      children: [
+                        CreatePosts(userPost: post),
+                        const SizedBox(height: 10),
+                      ],
+                    );
+                  }
+
+                  return const SizedBox();
+                },
+              );
+            },
+          );
         },
       ),
     );
@@ -97,22 +85,26 @@ class CommunityPageState extends State<CommunityPage> {
 
   Widget newPost(BuildContext context, var userData) {
     return GestureDetector(
+      onTap: () {}, // เดี๋ยวทำ Navigator ไปยังหน้าสร้างโพสต์ใหม่
       child: Container(
-        height: 35,
-        padding: EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: newPostBoxColor,
           boxShadow: [
-            BoxShadow(
-              color: widgetColors.boxShadowColor(),
-              offset: Offset(0, 5),
-            ),
+            BoxShadow(color: widgetColors.boxShadowColor(), blurRadius: 5),
           ],
         ),
         child: ListTile(
           title: Row(
             children: [
-              CircleAvatar(backgroundImage: userData['imageUrl']),
+              if (userData['user_photoUrl'].isNotEmpty)
+                CircleAvatar(
+                  backgroundImage: NetworkImage(userData['user_photoUrl']),
+                ),
+              if (userData['user_photoUrl'].isEmpty)
+                CircleAvatar(
+                  backgroundImage: AssetImage('assets/default_profile.png'),
+                ),
+              SizedBox(width: 15),
               Text('เพิ่มโพสต์'),
             ],
           ),
@@ -120,7 +112,8 @@ class CommunityPageState extends State<CommunityPage> {
             onPressed: () {},
             icon: Icon(
               Icons.add_circle_outline,
-              color: Color.fromARGB(0, 158, 158, 158),
+              color: WidgetColors().iconColorMoreDark(),
+              size: 32,
             ),
           ),
         ),
