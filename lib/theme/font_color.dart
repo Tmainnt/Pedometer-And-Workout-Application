@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class FontColor {
   Color errorColor() {
-    return Color.fromARGB(0, 255, 22, 22);
+    return Color.fromARGB(255, 255, 22, 22);
   }
 
   Color generalTextBrightTheme() {
@@ -10,6 +10,10 @@ class FontColor {
   }
 
   Color postText() {
-    return Color.fromARGB(0, 158, 158, 158);
+    return Color.fromARGB(255, 158, 158, 158);
+  }
+
+  Color postTextWithIcon() {
+    return Color.fromARGB(255, 90, 90, 100);
   }
 }
