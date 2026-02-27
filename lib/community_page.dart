@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pedometer_application/new_post.dart';
 import 'services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'widget/home/pedometer_app_bar.dart';
@@ -85,7 +86,12 @@ class CommunityPageState extends State<CommunityPage> {
 
   Widget newPost(BuildContext context, var userData) {
     return GestureDetector(
-      onTap: () {}, // เดี๋ยวทำ Navigator ไปยังหน้าสร้างโพสต์ใหม่
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => NewPost(userData: userData)),
+        );
+      }, // เดี๋ยวทำ Navigator ไปยังหน้าสร้างโพสต์ใหม่
       child: Container(
         decoration: BoxDecoration(
           color: newPostBoxColor,
@@ -109,7 +115,14 @@ class CommunityPageState extends State<CommunityPage> {
             ],
           ),
           trailing: IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NewPost(userData: userData),
+                ),
+              );
+            },
             icon: Icon(
               Icons.add_circle_outline,
               color: WidgetColors().iconColorMoreDark(),
