@@ -16,4 +16,15 @@ class WidgetColors {
   Color favoriteIcon() {
     return Colors.red;
   }
+
+  List<Color> applicationMainTheme() {
+    return [
+      Color.fromARGB(255, 124, 139, 253),
+      Color.fromARGB(255, 123, 75, 253),
+    ];
+  }
+
+  Color confirmButton() {
+    return Color.fromARGB(255, 97, 126, 255);
+  }
 }
