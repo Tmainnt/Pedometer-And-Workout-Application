@@ -10,7 +10,10 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
       flexibleSpace: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 124, 139, 253), Color.fromARGB(255, 123, 75, 253)],
+            colors: [
+              Color.fromARGB(255, 124, 139, 253),
+              Color.fromARGB(255, 123, 75, 253),
+            ],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -19,7 +22,7 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
 
       leading: IconButton(
         onPressed: () {},
-        icon: const Icon(Icons.menu, color: Colors.white, size: 40,),
+        icon: const Icon(Icons.menu, color: Colors.white, size: 40),
       ),
 
       title: Column(
