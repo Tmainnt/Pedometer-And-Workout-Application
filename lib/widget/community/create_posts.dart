@@ -144,7 +144,9 @@ class _CreatePostsState extends State<CreatePosts> {
               if (widget.userPost.imageUrl.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Image.network(widget.userPost.imageUrl),
+                  child: Image.network(
+                    widget.userPost.imageUrl,
+                  ), // ดึงรูปจาก firebase storage มาแสดง
                 ),
               Row(
                 children: [
@@ -204,7 +206,7 @@ class _CreatePostsState extends State<CreatePosts> {
                       ],
                     ),
                   ),
-                  Expanded(
+                  /*Expanded(
                     child: Center(
                       child: IconButton(
                         onPressed: () {}, // เดี๋ยวมาเพิ่มการแชร์
@@ -215,7 +217,7 @@ class _CreatePostsState extends State<CreatePosts> {
                         ),
                       ),
                     ),
-                  ),
+                  ),*/
                 ],
               ),
             ],
