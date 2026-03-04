@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
+		<key>NSMotionUsageDescription</key>
+		<string>This app required access movement to count pedometer</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>This app requires access to your location to track your running distance, pace, and
 			route in real-time.</string>

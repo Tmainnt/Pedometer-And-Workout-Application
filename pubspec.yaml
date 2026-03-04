@@ -34,7 +34,7 @@ dependencies:
   geolocator: ^13.0.1
   stop_watch_timer: ^3.1.2
   flutter_background_service: ^5.0.10
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.1
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
@@ -45,6 +45,7 @@ dependencies:
   cloud_firestore: ^6.1.2
   logger: ^2.6.2
   intl: ^0.20.2
+  pedometer: ^4.1.1
 
 dev_dependencies:
   flutter_test:

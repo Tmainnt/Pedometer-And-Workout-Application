@@ -189,7 +189,7 @@ class HistoryPage extends StatelessWidget {
       date = (data['timestamp'] as Timestamp).toDate();
     }
 
-    final dateStr = DateFormat('วันนี้, HH:mm').format(date);
+    final dateStr = DateFormat('dd/MM, HH:mm').format(date);
 
     final distance = (data['distance'] ?? 0.0) as double;
     final cal = (data['calories'] ?? 0.0) as double;

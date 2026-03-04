@@ -1,15 +1,28 @@
 import 'dart:async';
 import 'package:geolocator/geolocator.dart';
+import 'package:pedometer/pedometer.dart';
 
 class RuntimeTrackingService {
   double _totalDistance = 0.0;
   int _totalSeconds = 0;
+  double _totalElevationGain = 0.0;
+  int _totalSteps = 0;
+  int _lastSteps = 0;
+  int _isFirstStep = 0;
+  StreamSubscription<StepCount>? _stepCountStream;
   Timer? _timer;
   Position? lastPosition;
   StreamSubscription<Position>? _positionStream;
   List<Map<String, double>> _routePath = [];
 
-  Function(double dist, int time, String pace, List<Map<String, double>> route)?
+  Function(
+    double dist,
+    int time,
+    String pace,
+    List<Map<String, double>> route,
+    double elevationGain,
+    int steps,
+  )?
   _onUpdateCallback;
 
   Future<bool> checkPermission() async {
@@ -43,6 +56,8 @@ class RuntimeTrackingService {
       int time,
       String pace,
       List<Map<String, double>> route,
+      double elevationGain,
+      int steps,
     )
     onUpdate,
   }) {
@@ -52,6 +67,30 @@ class RuntimeTrackingService {
   }
 
   void _startTimerAndStream() {
+    _isFirstStep = 1;
+
+    _stepCountStream = Pedometer.stepCountStream.listen((StepCount event) {
+      if (_isFirstStep == 1) {
+        // บันทึกค่าเริ่มต้นจากเครื่อง (เช่น เครื่องบอกว่าเดินมาแล้ว 5000 ก้าว)
+        _lastSteps = event.steps;
+        _isFirstStep = 0;
+      } else {
+        // คำนวณเฉพาะก้าวที่เพิ่มขึ้นใหม่
+        int delta = event.steps - _lastSteps;
+        if (delta > 0) {
+          _totalSteps += delta;
+          _lastSteps = event.steps;
+        }
+      }
+      _sendUpdate(); // แจ้งเตือน UI เมื่อก้าวเปลี่ยน
+    }, onError: (error) => print("Pedometer Error: $error"));
+
+    // 2. ตัวจับเวลา (เหมือนเดิม)
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      _totalSeconds++;
+      _sendUpdate(); // แจ้งเตือน UI ทุกวินาที
+    });
+
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _totalSeconds++;
       if (_onUpdateCallback != null) {
@@ -60,6 +99,8 @@ class RuntimeTrackingService {
           _totalSeconds,
           _calculatePace(),
           _routePath,
+          _totalElevationGain,
+          _totalSteps,
         );
       }
     });
@@ -80,8 +121,19 @@ class RuntimeTrackingService {
             );
 
             _totalDistance += distanceBetween;
+
+            double altitudeDifferent =
+                position.altitude - lastPosition!.altitude;
+
+            if (altitudeDifferent > 0) {
+              _totalElevationGain += altitudeDifferent;
+            }
           }
-          _routePath.add({'lat': position.latitude, 'lng': position.longitude});
+          _routePath.add({
+            'lat': position.latitude,
+            'lng': position.longitude,
+            'alt': position.altitude,
+          });
 
           lastPosition = position;
 
@@ -91,6 +143,8 @@ class RuntimeTrackingService {
               _totalSeconds,
               _calculatePace(),
               _routePath,
+              _totalElevationGain,
+              _totalSteps,
             );
           }
         });
@@ -120,6 +174,19 @@ class RuntimeTrackingService {
     _onUpdateCallback = null;
   }
 
+  void _sendUpdate() {
+    if (_onUpdateCallback != null) {
+      _onUpdateCallback!(
+        _totalDistance,
+        _totalSeconds,
+        _calculatePace(),
+        _routePath,
+        _totalElevationGain,
+        _totalSteps, // <--- อย่าลืมส่งก้าวไปด้วย (ต้องไปเพิ่ม parameter ใน callback ด้วยนะครับ)
+      );
+    }
+  }
+
   String _calculatePace() {
     if (_totalDistance < 10) {
       return "0.00";
@@ -139,5 +206,6 @@ class RuntimeTrackingService {
     _routePath = [];
     _totalDistance = 0.0;
     _totalSeconds = 0;
+    _totalElevationGain = 0.0;
   }
 }

@@ -31,6 +31,9 @@ class HomePageState extends State<HomePage> {
   double _currentDistanceKm = 0.0;
   int _currentSeconds = 0;
   String _currentPace = "0:00";
+  double _currentElevationGain = 0.0;
+  int _currentSteps = 0;
+
   List<Map<String, double>> _currentRoute = [];
   Set<Polyline> _polylines = {};
   LatLng? _currentLatLng;
@@ -68,12 +71,15 @@ class HomePageState extends State<HomePage> {
     setState(() => _runStatus = RunStatus.running);
 
     _trackingService.startTracking(
-      onUpdate: (distance, time, pace, route) {
+      onUpdate: (distance, time, pace, route, elevationGain, steps) {
         setState(() {
           _currentDistanceKm = distance / 1000;
           _currentSeconds = time;
           _currentPace = pace;
           _currentRoute = route;
+          _currentElevationGain = elevationGain;
+          _currentSteps = steps;
+
           if (route.isNotEmpty) {
             _currentLatLng = LatLng(route.last['lat']!, route.last['lng']!);
 
@@ -104,6 +110,7 @@ class HomePageState extends State<HomePage> {
   }
 
   void _stopAndSaveRunning() async {
+    print(_currentRoute);
     _trackingService.stopTracking();
     setState(() => _runStatus = RunStatus.notStart);
 
@@ -156,6 +163,7 @@ class HomePageState extends State<HomePage> {
       _currentDistanceKm = 0.0;
       _currentSeconds = 0;
       _currentPace = "0:00";
+      _currentElevationGain = 0.0;
       _currentRoute = [];
       _polylines = {};
       _currentLatLng = null;
@@ -243,14 +251,12 @@ class HomePageState extends State<HomePage> {
         height: 60,
         child: ElevatedButton.icon(
           onPressed: _startRunning,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
           label: const Text(
             "เริ่มวิ่ง",
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          icon: const Icon(Icons.play_arrow, size: 30,),
+          icon: const Icon(Icons.play_arrow, size: 30),
         ),
       );
     }
@@ -293,9 +299,9 @@ class HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-             style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFA500), 
-                foregroundColor: Colors.white, 
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFFA500),
+                foregroundColor: Colors.white,
               ),
               icon: _isSaving
                   ? const SizedBox(
@@ -306,7 +312,7 @@ class HomePageState extends State<HomePage> {
                         strokeWidth: 2,
                       ),
                     )
-                : const Icon(Icons.stop, size: 28),
+                  : const Icon(Icons.stop, size: 28),
             ),
           ),
         ),
@@ -324,12 +330,19 @@ class HomePageState extends State<HomePage> {
         ),
         borderRadius: BorderRadius.circular(25),
       ),
-      child: const Column(
+      child: Column(
         children: [
           ListHealthStatItem(
             icon: Icons.trending_up,
             label: "Elevation Gain",
-            value: "+00",
+            value: "+${_currentElevationGain.toStringAsFixed(0)} m",
+          ),
+          const Divider(color: Colors.white54, height: 20),
+          // 💡 เพิ่มส่วนแสดงจำนวนก้าวตรงนี้ครับ
+          ListHealthStatItem(
+            icon: Icons.directions_walk,
+            label: "Steps",
+            value: "$_currentSteps steps",
           ),
           Divider(color: Colors.white54, height: 30),
           ListHealthStatItem(
