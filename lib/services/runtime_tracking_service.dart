@@ -69,42 +69,28 @@ class RuntimeTrackingService {
   void _startTimerAndStream() {
     _isFirstStep = 1;
 
+    // 1. จัดการ Stream ก้าวเดิน
     _stepCountStream = Pedometer.stepCountStream.listen((StepCount event) {
       if (_isFirstStep == 1) {
-        // บันทึกค่าเริ่มต้นจากเครื่อง (เช่น เครื่องบอกว่าเดินมาแล้ว 5000 ก้าว)
         _lastSteps = event.steps;
         _isFirstStep = 0;
       } else {
-        // คำนวณเฉพาะก้าวที่เพิ่มขึ้นใหม่
         int delta = event.steps - _lastSteps;
         if (delta > 0) {
           _totalSteps += delta;
           _lastSteps = event.steps;
         }
       }
-      _sendUpdate(); // แจ้งเตือน UI เมื่อก้าวเปลี่ยน
+      _sendUpdate();
     }, onError: (error) => print("Pedometer Error: $error"));
 
-    // 2. ตัวจับเวลา (เหมือนเดิม)
+    // 2. จัดการตัวจับเวลา 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       _totalSeconds++;
-      _sendUpdate(); // แจ้งเตือน UI ทุกวินาที
+      _sendUpdate();
     });
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _totalSeconds++;
-      if (_onUpdateCallback != null) {
-        _onUpdateCallback!(
-          _totalDistance,
-          _totalSeconds,
-          _calculatePace(),
-          _routePath,
-          _totalElevationGain,
-          _totalSteps,
-        );
-      }
-    });
-
+    // 3. จัดการ GPS
     _positionStream =
         Geolocator.getPositionStream(
           locationSettings: const LocationSettings(
@@ -113,40 +99,22 @@ class RuntimeTrackingService {
           ),
         ).listen((Position position) {
           if (lastPosition != null) {
-            double distanceBetween = Geolocator.distanceBetween(
+            _totalDistance += Geolocator.distanceBetween(
               lastPosition!.latitude,
               lastPosition!.longitude,
               position.latitude,
               position.longitude,
             );
-
-            _totalDistance += distanceBetween;
-
-            double altitudeDifferent =
-                position.altitude - lastPosition!.altitude;
-
-            if (altitudeDifferent > 0) {
-              _totalElevationGain += altitudeDifferent;
-            }
+            double altDiff = position.altitude - lastPosition!.altitude;
+            if (altDiff > 0) _totalElevationGain += altDiff;
           }
           _routePath.add({
             'lat': position.latitude,
             'lng': position.longitude,
             'alt': position.altitude,
           });
-
           lastPosition = position;
-
-          if (_onUpdateCallback != null) {
-            _onUpdateCallback!(
-              _totalDistance,
-              _totalSeconds,
-              _calculatePace(),
-              _routePath,
-              _totalElevationGain,
-              _totalSteps,
-            );
-          }
+          _sendUpdate();
         });
   }
 
@@ -182,7 +150,7 @@ class RuntimeTrackingService {
         _calculatePace(),
         _routePath,
         _totalElevationGain,
-        _totalSteps, // <--- อย่าลืมส่งก้าวไปด้วย (ต้องไปเพิ่ม parameter ใน callback ด้วยนะครับ)
+        _totalSteps, 
       );
     }
   }
