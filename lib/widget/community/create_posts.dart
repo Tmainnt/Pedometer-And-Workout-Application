@@ -2,11 +2,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/profile_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/theme/font_color.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
 import 'package:pedometer_application/services/post_page_service.dart';
 import 'package:pedometer_application/extension/number_format.dart';
+import 'package:pedometer_application/widget/community/new_post.dart';
 
 class CreatePosts extends StatefulWidget {
   final Post userPost;
@@ -25,8 +27,8 @@ class _CreatePostsState extends State<CreatePosts> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder(
-      stream: firestoreService.getUserDataByUID(widget.userPost.UID),
+    return FutureBuilder(
+      future: firestoreService.getUserDataByUID(widget.userPost.UID),
       builder: (context, snapshot) {
         final check = firestoreService.checkHasData(snapshot);
         if (check != true) return check;
@@ -36,7 +38,7 @@ class _CreatePostsState extends State<CreatePosts> {
 
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(15, 0, 15, 0),
+          padding: const EdgeInsets.fromLTRB(15, 15, 15, 0),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
@@ -44,94 +46,174 @@ class _CreatePostsState extends State<CreatePosts> {
             ],
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GestureDetector(
-                    onTap:
-                        () {}, // เดี๋ยวเพิ่ม Navigator ไปที่หน้า Profile ของคนโพสต์
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ProfilePage(UID: widget.userPost.UID),
+                        ),
+                      );
+                    },
                     child: CircleAvatar(
                       backgroundImage:
                           userData['user_photoUrl'] != null &&
                               userData['user_photoUrl'].isNotEmpty
                           ? NetworkImage(userData['user_photoUrl'])
-                          : AssetImage('assets/default_profile.png')
+                          : const AssetImage('assets/default_profile.png')
                                 as ImageProvider,
                     ),
                   ),
+
                   const SizedBox(width: 12),
+
                   Expanded(
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: GestureDetector(
-                        onTap:
-                            () {}, // เดี๋ยวเพิ่ม Navigator ไปที่หน้า Profile ของคนโพสต์
-                        child: Text(userData['user_name']),
-                      ),
-                      subtitle: Text(postPageService.checkTimestamp()),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            width: 60,
-                            child:
-                                widget.userPost.UID ==
-                                    FirebaseAuth.instance.currentUser!.uid
-                                ? GestureDetector(
-                                    onTap:
-                                        () {}, // เดี๋ยวเพิ่มการเปลี่ยนแปลงหลังกด แล้วอัปเดตรายชื่อลง database ด้วย
-                                    child: Text(
-                                      'ติดตาม',
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Color.fromARGB(255, 46, 77, 252),
-                                        fontSize: 15,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          ProfilePage(UID: widget.userPost.UID),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  userData['user_name'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+
+                            if (widget.userPost.feeling != '') ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '- ${widget.userPost.feeling}',
+                                style: const TextStyle(fontSize: 12),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(width: 4),
+                              Image.asset(
+                                widget.userPost.emotionUrl!,
+                                width: 14,
+                                height: 14,
+                              ),
+                            ],
+                          ],
+                        ),
+
+                        const SizedBox(height: 2),
+
+                        Text(
+                          postPageService.checkTimestamp(),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  IconButton(
+                    onPressed: () {
+                      final currentUID = FirebaseAuth.instance.currentUser!.uid;
+
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (context) {
+                          if (widget.userPost.UID == currentUID) {
+                            return SafeArea(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.edit),
+                                    title: const Text('แก้ไขโพสต์'),
+                                    onTap: () {
+                                      Navigator.pop(context);
+
+                                      final currentUID = FirebaseAuth
+                                          .instance
+                                          .currentUser!
+                                          .uid;
+
+                                      if (widget.userPost.UID == currentUID) {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => NewPost(
+                                              userData: userData,
+                                              post: widget
+                                                  .userPost, // ส่ง post ไป
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: Icon(
+                                      Icons.delete,
+                                      color: FontColor().errorColor(),
+                                    ),
+                                    title: Text(
+                                      'ลบโพสต์',
+                                      style: TextStyle(
+                                        color: FontColor().errorColor(),
                                       ),
                                     ),
-                                  )
-                                : const SizedBox(),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (_) => AlertDialog(
-                                  content: Row(
-                                    children: [
-                                      const SizedBox(
-                                        width: 23,
-                                        height: 23,
-                                        child: Icon(
-                                          Icons.error_outline,
-                                          color: Color.fromARGB(
-                                            255,
-                                            255,
-                                            22,
-                                            22,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Text(
-                                        'รายงาน',
-                                        style: TextStyle(
-                                          color: FontColor().errorColor(),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
+                                    onTap: () {
+                                      firestoreService.deletePost(
+                                        widget.userPost,
+                                      );
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          } else {
+                            return SafeArea(
+                              child: ListTile(
+                                leading: Icon(
+                                  Icons.error_outline,
+                                  color: FontColor().errorColor(),
+                                ),
+                                title: Text(
+                                  'รายงาน',
+                                  style: TextStyle(
+                                    color: FontColor().errorColor(),
                                   ),
                                 ),
-                              );
-                            },
-                            icon: Icon(
-                              Icons.more_horiz,
-                              size: 32,
-                              color: widgetColors.iconColorMoreDark(),
-                            ),
-                          ),
-                        ],
-                      ),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                },
+                              ),
+                            );
+                          }
+                        },
+                      );
+                    },
+                    icon: Icon(
+                      Icons.more_horiz,
+                      size: 28,
+                      color: widgetColors.iconColorMoreDark(),
                     ),
                   ),
                 ],
@@ -141,11 +223,11 @@ class _CreatePostsState extends State<CreatePosts> {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text(widget.userPost.content),
                 ),
-              if (widget.userPost.imageUrl.isNotEmpty)
+              if (widget.userPost.imageUrl!.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Image.network(
-                    widget.userPost.imageUrl,
+                    widget.userPost.imageUrl!,
                   ), // ดึงรูปจาก firebase storage มาแสดง
                 ),
               Row(
@@ -175,7 +257,7 @@ class _CreatePostsState extends State<CreatePosts> {
                                 }
                               },
                               icon: Icon(
-                                Icons.favorite,
+                                Icons.favorite_outline,
                                 color: liked
                                     ? widgetColors.favoriteIcon()
                                     : widgetColors.iconColorMoreDark(),
