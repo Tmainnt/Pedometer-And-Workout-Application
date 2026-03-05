@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:pedometer_application/new_post.dart';
+import 'package:pedometer_application/widget/community/new_post.dart';
 import 'services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'widget/home/pedometer_app_bar.dart';
@@ -24,8 +24,8 @@ class CommunityPageState extends State<CommunityPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PedometerAppBar(),
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: firestoreService.getUserData(),
+      body: FutureBuilder<DocumentSnapshot>(
+        future: firestoreService.getUserData(),
         builder: (context, snapshot) {
           final checkSnapshot = firestoreService.checkHasData(snapshot);
           if (checkSnapshot != true) {
@@ -34,8 +34,8 @@ class CommunityPageState extends State<CommunityPage> {
 
           final userData = snapshot.data!.data() as Map<String, dynamic>;
 
-          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: firestoreService.getPostData(),
+          return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            future: firestoreService.getPostData(),
             builder: (context, postSnapshot) {
               final checkPostSnapshot = firestoreService.checkHasData(
                 postSnapshot,
@@ -49,31 +49,38 @@ class CommunityPageState extends State<CommunityPage> {
                   .map((doc) => Post.fromFirestore(doc))
                   .toList();
 
-              return ListView.builder(
-                itemCount: userPost.length + 1,
-                itemBuilder: (context, index) {
-                  // ตัวแรกคือ newPost
-                  if (index == 0) {
-                    return Column(
-                      children: [
-                        newPost(context, userData),
-                        const SizedBox(height: 10),
-                      ],
-                    );
-                  }
-
-                  final post = userPost[index - 1];
-                  if (post.content.isNotEmpty || post.imageUrl.isNotEmpty) {
-                    return Column(
-                      children: [
-                        CreatePosts(userPost: post),
-                        const SizedBox(height: 10),
-                      ],
-                    );
-                  }
-
-                  return const SizedBox();
+              return RefreshIndicator(
+                onRefresh: () async {
+                  await Future.delayed(Duration(seconds: 1));
+                  setState(() {});
                 },
+                child: ListView.builder(
+                  physics: BouncingScrollPhysics(),
+                  itemCount: userPost.length + 1,
+                  itemBuilder: (context, index) {
+                    // ตัวแรกคือ newPost
+                    if (index == 0) {
+                      return Column(
+                        children: [
+                          newPost(context, userData),
+                          const SizedBox(height: 10),
+                        ],
+                      );
+                    }
+
+                    final post = userPost[index - 1];
+                    if (post.content.isNotEmpty || post.imageUrl!.isNotEmpty) {
+                      return Column(
+                        children: [
+                          CreatePosts(userPost: post),
+                          const SizedBox(height: 10),
+                        ],
+                      );
+                    }
+
+                    return const SizedBox();
+                  },
+                ),
               );
             },
           );
@@ -91,15 +98,52 @@ class CommunityPageState extends State<CommunityPage> {
           context,
           MaterialPageRoute(builder: (context) => NewPost(userData: userData)),
         );
-      }, // เดี๋ยวทำ Navigator ไปยังหน้าสร้างโพสต์ใหม่
+      },
       child: Container(
+        padding: EdgeInsets.fromLTRB(15, 0, 14, 0),
         decoration: BoxDecoration(
           color: newPostBoxColor,
           boxShadow: [
             BoxShadow(color: widgetColors.boxShadowColor(), blurRadius: 5),
           ],
         ),
-        child: ListTile(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                if (userData['user_photoUrl'].isNotEmpty)
+                  CircleAvatar(
+                    backgroundImage: NetworkImage(userData['user_photoUrl']),
+                  ),
+
+                if (userData['user_photoUrl'].isEmpty)
+                  CircleAvatar(
+                    backgroundImage: AssetImage('assets/default_profile.png'),
+                  ),
+
+                SizedBox(width: 15),
+                Text('เพิ่มโพสต์'),
+              ],
+            ),
+            IconButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NewPost(userData: userData),
+                  ),
+                );
+              },
+              icon: Icon(
+                Icons.add_circle_outline,
+                color: WidgetColors().iconColorMoreDark(),
+                size: 32,
+              ),
+            ),
+          ],
+        ),
+        /*ListTile(
           title: Row(
             children: [
               if (userData['user_photoUrl'].isNotEmpty)
@@ -129,7 +173,7 @@ class CommunityPageState extends State<CommunityPage> {
               size: 32,
             ),
           ),
-        ),
+        ),*/
       ),
     );
   }
