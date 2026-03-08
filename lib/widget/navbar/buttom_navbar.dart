@@ -13,18 +13,23 @@ class BottomNavbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomNavigationBar(
-      currentIndex: currentIndex, 
+      currentIndex: currentIndex,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
       selectedItemColor: const Color(0xFF7E8CFD),
       unselectedItemColor: Colors.black87,
       unselectedFontSize: 12,
-      items: const[
-        BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'หน้าหลัก'),
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home_filled),
+          label: 'หน้าหลัก',
+        ),
         BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'รายงาน'),
-        BottomNavigationBarItem(icon: Icon(Icons.fitness_center), label: 'ท่าฝึก'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.fitness_center),
+          label: 'ท่าฝึก',
+        ),
         BottomNavigationBarItem(icon: Icon(Icons.group), label: 'ชุมชน'),
-        BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'ห้องสนทนา'),
       ],
     );
   }
