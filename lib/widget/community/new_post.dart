@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:pedometer_application/community_page.dart';
 import 'package:pedometer_application/models/feeling.dart';
 import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/user.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/widget/community/feeling_selected.dart';
 import 'package:pedometer_application/theme/font_color.dart';
@@ -12,7 +13,7 @@ import 'package:pedometer_application/theme/widget_colors.dart';
 import 'dart:io';
 
 class NewPost extends StatefulWidget {
-  final Map<String, dynamic> userData;
+  final UserModel userData;
   final Post? post;
   const NewPost({super.key, required this.userData, this.post});
 
@@ -179,20 +180,20 @@ class NewPostState extends State<NewPost> {
             padding: EdgeInsets.all(20),
             child: Row(
               children: [
-                if (widget.userData['user_photoUrl'].isNotEmpty)
+                if (widget.userData.phoUrl.isNotEmpty &&
+                    widget.userData.phoUrl != '')
                   CircleAvatar(
-                    backgroundImage: NetworkImage(
-                      widget.userData['user_photoUrl'],
-                    ),
+                    backgroundImage: NetworkImage(widget.userData.phoUrl),
                   ),
-                if (widget.userData['user_photoUrl'].isEmpty)
+                if (widget.userData.phoUrl.isEmpty &&
+                    widget.userData.phoUrl == '')
                   CircleAvatar(
                     backgroundImage: AssetImage('assets/default_profile.png'),
                   ),
                 SizedBox(width: 20),
                 if (_selectedFeeling == null)
                   Text(
-                    widget.userData['user_name'],
+                    widget.userData.name,
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   )
                 else
@@ -200,7 +201,7 @@ class NewPostState extends State<NewPost> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.userData['user_name'],
+                        widget.userData.name,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -227,6 +228,9 @@ class NewPostState extends State<NewPost> {
             child: ListView(
               children: [
                 TextField(
+                  onChanged: (value) {
+                    setState(() {});
+                  },
                   controller: _textEditingController,
                   decoration: InputDecoration(
                     border: InputBorder.none,
@@ -385,27 +389,17 @@ class NewPostState extends State<NewPost> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  backgroundColor: WidgetColors().confirmButton(),
+                  backgroundColor:
+                      (_textEditingController.text.isEmpty &&
+                          _image == null &&
+                          _networkImage == null)
+                      ? widgetColors.waitButton()
+                      : widgetColors.confirmButton(),
                 ),
                 onPressed: () {
-                  if (_textEditingController.text.isEmpty &&
-                      _image == null &&
-                      _networkImage == null) {
-                    showDialog(
-                      barrierDismissible: true,
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(
-                          'กรุณาใส่ข้อความหรือรูปภาพ!',
-                          style: TextStyle(
-                            color: fontColors.textDark(),
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    );
-                  } else {
+                  if (_textEditingController.text.isNotEmpty ||
+                      _image != null ||
+                      _networkImage != null) {
                     showDialog(
                       barrierDismissible: false,
                       context: context,
