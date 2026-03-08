@@ -19,4 +19,6 @@ class WidgetColors {
   Color selectedShadowColor() => Color.fromARGB(255, 97, 126, 255);
 
   Color lightTheme() => Colors.white;
+
+  Color waitButton() => Colors.grey;
 }
