@@ -6,30 +6,75 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/models/feeling.dart';
 import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/user.dart';
 
 class FirestoreService {
+  static final Map<String, UserModel> _userCache = {};
   final CollectionReference usersCollection = FirebaseFirestore.instance
       .collection('users');
 
   final CollectionReference postCollection = FirebaseFirestore.instance
       .collection('posts');
 
-  Future<DocumentSnapshot> getUserData() {
-    return FirebaseFirestore.instance
+  Future<UserModel> getUserData() async {
+    final doc = await FirebaseFirestore.instance
         .collection('users')
         .doc(FirebaseAuth.instance.currentUser?.uid)
         .get();
+    return UserModel.fromFirestore(doc);
   }
 
-  Future<DocumentSnapshot> getUserDataByUID(String UID) {
-    return FirebaseFirestore.instance.collection('users').doc(UID).get();
+  Future<UserModel> getUserDataByUID(String UID) async {
+    if (_userCache.containsKey(UID)) {
+      return _userCache[UID]!;
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(UID)
+        .get();
+
+    final userModel = UserModel.fromFirestore(doc);
+
+    _userCache[UID] = userModel;
+
+    return userModel;
   }
 
-  Future<QuerySnapshot<Map<String, dynamic>>> getPostData() {
-    return FirebaseFirestore.instance
+  UserModel? getCachedUser(String UID) {
+    return _userCache[UID];
+  }
+
+  Future<List<Post>> getPostByUID(String uid) async {
+    final QuerySnapshot<Map<String, dynamic>> query = await FirebaseFirestore
+        .instance
         .collection('posts')
+        .where('postBy_UID', isEqualTo: uid)
         .orderBy('create_timestamp', descending: true)
         .get();
+
+    return query.docs.map((doc) => Post.fromFirestore(doc)).toList();
+  }
+
+  Future<List<Post>> getPostsPaginated({DocumentSnapshot? lastDocument}) async {
+    Query query = FirebaseFirestore.instance
+        .collection('posts')
+        .orderBy('create_timestamp', descending: true)
+        .limit(5);
+
+    if (lastDocument != null) {
+      query = query.startAfterDocument(lastDocument);
+    }
+
+    final querySnapshot = await query.get();
+
+    return querySnapshot.docs
+        .map(
+          (doc) => Post.fromFirestore(
+            doc as QueryDocumentSnapshot<Map<String, dynamic>>,
+          ),
+        )
+        .toList();
   }
 
   dynamic checkHasData(AsyncSnapshot snapshot) {
@@ -106,6 +151,18 @@ class FirestoreService {
     });
   }
 
+  Stream<List<Post>> getPostStream(int limit) {
+    return FirebaseFirestore.instance
+        .collection('posts')
+        .orderBy('create_timestamp', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Post.fromFirestore(doc)).toList(),
+        );
+  }
+
   Stream<bool> hasUserLikedPost(String postID, String uid) {
     return FirebaseFirestore.instance
         .collection('posts')
@@ -117,7 +174,13 @@ class FirestoreService {
   }
 
   Future<void> likePost(String postID) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    if (postID.isEmpty) {
+      print('Error: postID is empty');
+      return;
+    }
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
     await postCollection.doc(postID).collection('postLiked').doc(uid).set({
       'liked_at': FieldValue.serverTimestamp(),
@@ -129,7 +192,10 @@ class FirestoreService {
   }
 
   Future<void> unlikePost(String postID) async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    if (postID.isEmpty) return; // ดักไว้เหมือนกัน
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
 
     await postCollection.doc(postID).collection('postLiked').doc(uid).delete();
 
@@ -172,6 +238,89 @@ class FirestoreService {
       'total_comment': 0,
       'total_like': 0,
       'update_timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateUserProfile({
+    required String uid,
+    required String name,
+    required String bio,
+    required int age,
+    required int height,
+    required int weight,
+    File? profileImage,
+    File? backgroundImage,
+    String? networkProfileImage,
+    String? networkBackgroundImage,
+    String? oldProfileUrl,
+    String? oldBackgroundUrl,
+  }) async {
+    double bmi = 0;
+
+    if (height > 0) {
+      double heightMeter = height / 100;
+      bmi = weight / (heightMeter * heightMeter);
+
+      bmi = double.parse(bmi.toStringAsFixed(1));
+    }
+
+    String updateProfileUrl = networkProfileImage ?? '';
+    String updateBackgroundUrl = networkBackgroundImage ?? '';
+
+    /// ---------------- PROFILE IMAGE ----------------
+
+    if (profileImage != null) {
+      if (oldProfileUrl != null && oldProfileUrl.isNotEmpty) {
+        await deleteImage(oldProfileUrl);
+      }
+
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_image')
+          .child('${uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      await storageRef.putFile(profileImage);
+
+      updateProfileUrl = await storageRef.getDownloadURL();
+    } else if ((networkProfileImage == null || networkProfileImage.isEmpty) &&
+        oldProfileUrl != null &&
+        oldProfileUrl.isNotEmpty) {
+      await deleteImage(oldProfileUrl);
+    }
+
+    /// ---------------- BACKGROUND IMAGE ----------------
+
+    if (backgroundImage != null) {
+      if (oldBackgroundUrl != null && oldBackgroundUrl.isNotEmpty) {
+        await deleteImage(oldBackgroundUrl);
+      }
+
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('background_image')
+          .child('${uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      await storageRef.putFile(backgroundImage);
+
+      updateBackgroundUrl = await storageRef.getDownloadURL();
+    } else if ((networkBackgroundImage == null ||
+            networkBackgroundImage.isEmpty) &&
+        oldBackgroundUrl != null &&
+        oldBackgroundUrl.isNotEmpty) {
+      await deleteImage(oldBackgroundUrl);
+    }
+
+    /// ---------------- UPDATE FIRESTORE ----------------
+
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'user_name': name,
+      'user_bio': bio,
+      'user_age': age,
+      'user_height': height,
+      'user_weight': weight,
+      'user_BMI': bmi,
+      'user_photoUrl': updateProfileUrl,
+      'user_background_ImageUrl': updateBackgroundUrl,
     });
   }
 }
