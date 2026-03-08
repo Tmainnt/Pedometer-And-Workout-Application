@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pedometer_application/widget/community/new_post.dart';
+import 'package:pedometer_application/models/user.dart';
 import 'services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import 'widget/home/pedometer_app_bar.dart';
@@ -20,67 +20,103 @@ class CommunityPageState extends State<CommunityPage> {
   final FirestoreService firestoreService = FirestoreService();
   final WidgetColors widgetColors = WidgetColors();
 
+  late Future<UserModel> _userDataFuture;
+  final ScrollController _scrollController = ScrollController();
+
+  int _limit = 5;
+
+  bool _isRequesting = false;
+  List<Post> _cachedPosts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _userDataFuture = firestoreService.getUserData();
+
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        if (!_isRequesting) {
+          setState(() {
+            _isRequesting = true;
+            _limit += 5;
+          });
+
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              setState(() {
+                _isRequesting = false;
+              });
+            }
+          });
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PedometerAppBar(),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: firestoreService.getUserData(),
+      body: FutureBuilder<UserModel>(
+        future: _userDataFuture,
         builder: (context, snapshot) {
           final checkSnapshot = firestoreService.checkHasData(snapshot);
-          if (checkSnapshot != true) {
-            return checkSnapshot;
-          }
+          if (checkSnapshot != true) return checkSnapshot;
 
-          final userData = snapshot.data!.data() as Map<String, dynamic>;
+          final userData = snapshot.data!;
 
-          return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            future: firestoreService.getPostData(),
+          return StreamBuilder<List<Post>>(
+            stream: firestoreService.getPostStream(_limit),
             builder: (context, postSnapshot) {
-              final checkPostSnapshot = firestoreService.checkHasData(
-                postSnapshot,
-              );
-              if (checkPostSnapshot != true) {
-                return checkPostSnapshot;
+              if (postSnapshot.hasData) {
+                _cachedPosts = postSnapshot.data!;
               }
 
-              // userPost จะเป็น List ที่ด้านในเป็น Object Class Post
-              final userPost = postSnapshot.data!.docs
-                  .map((doc) => Post.fromFirestore(doc))
-                  .toList();
+              if (_cachedPosts.isEmpty &&
+                  postSnapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-              return RefreshIndicator(
-                onRefresh: () async {
-                  await Future.delayed(Duration(seconds: 1));
-                  setState(() {});
-                },
-                child: ListView.builder(
-                  physics: BouncingScrollPhysics(),
-                  itemCount: userPost.length + 1,
-                  itemBuilder: (context, index) {
-                    // ตัวแรกคือ newPost
-                    if (index == 0) {
-                      return Column(
-                        children: [
-                          newPost(context, userData),
-                          const SizedBox(height: 10),
-                        ],
-                      );
-                    }
-
-                    final post = userPost[index - 1];
-                    if (post.content.isNotEmpty || post.imageUrl!.isNotEmpty) {
-                      return Column(
-                        children: [
-                          CreatePosts(userPost: post),
-                          const SizedBox(height: 10),
-                        ],
-                      );
-                    }
-
-                    return const SizedBox();
-                  },
+              return ListView.builder(
+                controller: _scrollController,
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
+                itemCount: _cachedPosts.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Column(
+                      children: [
+                        newPost(context, userData),
+                        const SizedBox(height: 10),
+                      ],
+                    );
+                  }
+
+                  final post = _cachedPosts[index - 1];
+
+                  if (post.content.isNotEmpty || post.imageUrl!.isNotEmpty) {
+                    return Column(
+                      key: ValueKey(post.postID),
+                      children: [
+                        CreatePosts(
+                          userPost: post,
+                          currentUserRole: userData.role,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    );
+                  }
+
+                  return const SizedBox();
+                },
               );
             },
           );
@@ -91,7 +127,7 @@ class CommunityPageState extends State<CommunityPage> {
 
   // Widget สำหรับให้ผู้ใช้กดแล้วไปยังหน้าสร้างโพสต์ใหม่
 
-  Widget newPost(BuildContext context, var userData) {
+  Widget newPost(BuildContext context, UserModel userData) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -112,12 +148,10 @@ class CommunityPageState extends State<CommunityPage> {
           children: [
             Row(
               children: [
-                if (userData['user_photoUrl'].isNotEmpty)
-                  CircleAvatar(
-                    backgroundImage: NetworkImage(userData['user_photoUrl']),
-                  ),
+                if (userData.phoUrl.isNotEmpty && userData.phoUrl != '')
+                  CircleAvatar(backgroundImage: NetworkImage(userData.phoUrl)),
 
-                if (userData['user_photoUrl'].isEmpty)
+                if (userData.phoUrl.isEmpty && userData.phoUrl == '')
                   CircleAvatar(
                     backgroundImage: AssetImage('assets/default_profile.png'),
                   ),
@@ -143,37 +177,6 @@ class CommunityPageState extends State<CommunityPage> {
             ),
           ],
         ),
-        /*ListTile(
-          title: Row(
-            children: [
-              if (userData['user_photoUrl'].isNotEmpty)
-                CircleAvatar(
-                  backgroundImage: NetworkImage(userData['user_photoUrl']),
-                ),
-              if (userData['user_photoUrl'].isEmpty)
-                CircleAvatar(
-                  backgroundImage: AssetImage('assets/default_profile.png'),
-                ),
-              SizedBox(width: 15),
-              Text('เพิ่มโพสต์'),
-            ],
-          ),
-          trailing: IconButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => NewPost(userData: userData),
-                ),
-              );
-            },
-            icon: Icon(
-              Icons.add_circle_outline,
-              color: WidgetColors().iconColorMoreDark(),
-              size: 32,
-            ),
-          ),
-        ),*/
       ),
     );
   }
