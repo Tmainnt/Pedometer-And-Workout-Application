@@ -31,9 +31,8 @@ class CustomTextField extends StatelessWidget {
             boxShadow: [
               BoxShadow(
                 color: const Color.fromARGB(255, 138, 137, 137),
-                spreadRadius: 1,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                blurRadius: 2,
+                offset: const Offset(0, 3),
               ),
             ],
           ),

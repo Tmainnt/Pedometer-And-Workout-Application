@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/widget/home/list_heath_stat_item.dart';
-import 'package:pedometer_application/widget/home/pedometer_app_bar.dart';
 import 'package:pedometer_application/widget/home/running_map_card.dart';
 import 'package:pedometer_application/widget/home/workout_header.dart';
 
@@ -18,7 +17,6 @@ class HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const PedometerAppBar(),
       body: SingleChildScrollView(
         child: Column(
           children: [_buildMainTrackingCard(), _buildHealthStatsCard()],
@@ -59,7 +57,12 @@ class HomePageState extends State<HomePage> {
               child: Column(
                 spacing: 20,
                 children: [
-                  WorkoutStatsHeader(distance: 6.15, pace: 5.51, kcal: 300, totalSeconds: 1500),
+                  WorkoutStatsHeader(
+                    distance: 6.15,
+                    pace: 5.51,
+                    kcal: 300,
+                    totalSeconds: 1500,
+                  ),
                   const RunningMapCard(),
                 ],
               ),
@@ -112,9 +115,3 @@ class HomePageState extends State<HomePage> {
     );
   }
 }
-
-
-
-
-
-

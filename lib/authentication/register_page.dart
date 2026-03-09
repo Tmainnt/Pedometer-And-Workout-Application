@@ -54,7 +54,6 @@ class _RegisterPageState extends State<RegisterPage> {
       _confirmPasswordController.clear();
     } on FirebaseAuthException catch (e) {
       showGlobalSnackBar(e.message ?? "Error happenning");
-
     } finally {
       setState(() => isLoading = false);
     }
@@ -67,6 +66,20 @@ class _RegisterPageState extends State<RegisterPage> {
       child: Scaffold(
         body: Stack(
           children: [
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: const AssetImage('assets/auth_background.png'),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                    Colors.black.withOpacity(0.6),
+                    BlendMode.darken,
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: SingleChildScrollView(
                 child: Container(
@@ -107,7 +120,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
                           const SizedBox(height: 10),
 
-                          PrimaryButton(text: "สมัครสมาชิก", onTap: _signUp, isLoading: isLoading,),
+                          PrimaryButton(
+                            text: "สมัครสมาชิก",
+                            onTap: _signUp,
+                            isLoading: isLoading,
+                          ),
                         ],
                       ),
 
