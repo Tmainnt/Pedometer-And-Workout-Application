@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pedometer_application/community_page.dart';
+import 'package:pedometer_application/sceen/community/community_page.dart';
 import 'package:pedometer_application/models/feeling.dart';
 import 'package:pedometer_application/models/post.dart';
 import 'package:pedometer_application/models/user.dart';
@@ -159,18 +159,7 @@ class NewPostState extends State<NewPost> {
               Navigator.pop(context);
             }
           },
-          icon: Icon(
-            Icons.cancel,
-            color: Colors.white,
-            size: 40,
-            shadows: [
-              Shadow(
-                color: WidgetColors().boxShadowColor(),
-                blurRadius: 3,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
+          icon: Icon(Icons.close, color: Colors.white),
         ),
       ),
       body: Column(
@@ -209,7 +198,7 @@ class NewPostState extends State<NewPost> {
                       ),
                       Row(
                         children: [
-                          Text('- ตอนนี้กำลัง${_selectedFeeling!.label}'),
+                          Text('- ${_selectedFeeling!.label}'),
                           SizedBox(width: 10),
                           Image.asset(
                             _selectedFeeling!.imagePath,
