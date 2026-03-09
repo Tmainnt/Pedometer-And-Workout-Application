@@ -305,6 +305,7 @@ class FirestoreService {
   }
 
   Future<void> deleteComment(String postId, String commentId) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final batch = FirebaseFirestore.instance.batch();
 
     final commentRef = FirebaseFirestore.instance
@@ -312,6 +313,31 @@ class FirestoreService {
         .doc(postId)
         .collection('comment')
         .doc(commentId);
+
+    final commentDoc = await commentRef.get();
+
+    if (commentDoc.exists) {
+      final commentData = commentDoc.data() as Map<String, dynamic>;
+      final commentOwnerId = commentData['UID'] as String?;
+      final commentText = commentData['content'] as String? ?? 'ไม่มีข้อความ';
+
+      if (commentOwnerId != null && commentOwnerId != currentUid) {
+        final notifRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(commentOwnerId)
+            .collection('notifications')
+            .doc();
+
+        batch.set(notifRef, {
+          'type': 'comment_deleted',
+          'reason': 'ละเมิดกฎของชุมชน',
+          'detail': 'คอมเมนต์ของคุณถูกลบ: "$commentText"',
+          'isRead': false,
+          'create_timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
     batch.delete(commentRef);
 
     final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
@@ -613,25 +639,85 @@ class FirestoreService {
         .delete();
   }
 
-  Future<void> reportUser(
-    String reportedUid,
-    String postId,
-    String reason,
-    String detail,
-  ) async {
+  Future<void> reportUser({
+    required String reportedUid,
+    required String reportedName,
+    required String postId,
+    required String commentId,
+    required String commentText,
+    required String reason,
+    required String detail,
+  }) async {
     final reporterUid = FirebaseAuth.instance.currentUser?.uid;
     if (reporterUid == null) return;
 
     await FirebaseFirestore.instance.collection('reports').add({
-      'type': 'user_report',
+      'type': 'comment_report',
       'reported_uid': reportedUid,
+      'reported_name': reportedName,
       'reporter_uid': reporterUid,
       'postId': postId,
+      'commentId': commentId,
+      'commentText': commentText,
       'reason': reason,
       'detail': detail,
       'status': 'pending',
       'create_timestamp': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<void> banUser({
+    required String targetUid,
+    required String reportId,
+    required String reason,
+  }) async {
+    final adminUid = FirebaseAuth.instance.currentUser?.uid;
+    if (adminUid == null) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    final userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(targetUid);
+    batch.update(userRef, {'is_banned': true});
+
+    final sanctionRef = FirebaseFirestore.instance
+        .collection('sanctions')
+        .doc();
+    batch.set(sanctionRef, {
+      'user_UID': targetUid,
+      'admin_UID': adminUid,
+      'report_id': reportId,
+      'reason': reason,
+      'type': 'ban',
+      'create_timestamp': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+
+  Future<void> unbanUser(String targetUid) async {
+    final adminUid = FirebaseAuth.instance.currentUser?.uid;
+    if (adminUid == null) return;
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    final userRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(targetUid);
+    batch.update(userRef, {'is_banned': false});
+
+    final sanctionRef = FirebaseFirestore.instance
+        .collection('sanctions')
+        .doc();
+    batch.set(sanctionRef, {
+      'user_UID': targetUid,
+      'admin_UID': adminUid,
+      'type': 'unban',
+      'create_timestamp': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
   }
 
   Stream<bool> hasUserFollowed(String targetUid, String currentUid) {
