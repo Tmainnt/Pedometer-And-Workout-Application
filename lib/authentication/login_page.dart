@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/authentication/register_page.dart';
@@ -31,21 +32,78 @@ class LoginPageState extends State<LoginPage> {
     setState(() => isLoading = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
-      );
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+            email: _emailController.text.trim(),
+            password: _passwordController.text.trim(),
+          );
 
-      showGlobalSnackBar("login successfully");
+      final user = userCredential.user;
+
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          final isBanned = userData['is_banned'] ?? false;
+
+          if (isBanned) {
+            await FirebaseAuth.instance.signOut();
+
+            if (mounted) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  title: Row(
+                    children: const [
+                      Icon(Icons.block, color: Colors.red),
+                      SizedBox(width: 10),
+                      Text(
+                        'บัญชีถูกระงับ',
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  content: const Text(
+                    'บัญชีของคุณถูกระงับการใช้งานเนื่องจากละเมิดกฎของชุมชน\n\nโปรดติดต่อสอบถามได้ที่อีเมล:\nsupport@pedometer.com',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'ตกลง',
+                        style: TextStyle(color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+            return;
+          }
+        }
+      }
+
+      showGlobalSnackBar("เข้าสู่ระบบสำเร็จ");
 
       if (mounted) {
         Navigator.of(context).popUntil((route) => route.isFirst);
       }
-
     } on FirebaseAuthException catch (e) {
       showGlobalSnackBar(e.code);
+    } catch (e) {
+      showGlobalSnackBar("เกิดข้อผิดพลาด: $e");
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -56,6 +114,20 @@ class LoginPageState extends State<LoginPage> {
       child: Scaffold(
         body: Stack(
           children: [
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: const AssetImage('assets/auth_background.png'),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                    Colors.black.withOpacity(0.6),
+                    BlendMode.darken,
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: SingleChildScrollView(
                 child: Container(
