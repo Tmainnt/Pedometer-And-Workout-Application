@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/widget/home/list_heath_stat_item.dart';
-import 'package:pedometer_application/widget/home/pedometer_app_bar.dart';
 import 'package:pedometer_application/widget/home/running_map_card.dart';
 import 'package:pedometer_application/widget/home/workout_header.dart';
 
@@ -18,7 +17,6 @@ class HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: const PedometerAppBar(),
       body: SingleChildScrollView(
         child: Column(
           children: [_buildMainTrackingCard(), _buildHealthStatsCard()],
