@@ -4,9 +4,19 @@ import 'package:pedometer_application/theme/widget_colors.dart';
 
 class ReportUserDialog extends StatefulWidget {
   final String reportedUID;
+  final String reportedName;
   final String? postId;
+  final String? commentId;
+  final String? commentText;
 
-  const ReportUserDialog({super.key, required this.reportedUID, this.postId});
+  const ReportUserDialog({
+    super.key,
+    required this.reportedUID,
+    required this.reportedName,
+    this.postId,
+    this.commentId,
+    this.commentText,
+  });
 
   @override
   State<ReportUserDialog> createState() => _ReportUserDialogState();
@@ -41,10 +51,13 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
 
     try {
       await firestoreService.reportUser(
-        widget.reportedUID,
-        widget.postId ?? '',
-        _selectedReason!,
-        _detailController.text.trim(),
+        reportedUid: widget.reportedUID,
+        reportedName: widget.reportedName,
+        postId: widget.postId ?? '',
+        commentId: widget.commentId ?? '',
+        commentText: widget.commentText ?? '',
+        reason: _selectedReason!,
+        detail: _detailController.text.trim(),
       );
 
       if (mounted) {
