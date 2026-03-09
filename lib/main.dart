@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/authentication/register_page.dart';
+import 'package:pedometer_application/authentication/login_page.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:pedometer_application/main_wrapper.dart';
 import 'firebase_options.dart';
@@ -46,7 +46,7 @@ class AuthWrapper extends StatelessWidget {
           return const MainWrapper();
         }
 
-        return const RegisterPage();
+        return const LoginPage();
       },
     );
   }
