@@ -15,7 +15,7 @@ class PostPageService {
     }
     if (day >= 30 || day >= 28) {
       return "${day >= 30 ? (day / 30).floor : (day / 28).floor} เดือน";
-    } // เช็คเดือน โดยเช็ค 30 และ 31 ก่อนจึงเช็ค เดือนกุมพาพันธ์
+    }
     if (day > 0) {
       return "$day วัน";
     }

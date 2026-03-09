@@ -98,7 +98,6 @@ class BannedUsersPage extends StatelessWidget {
                     icon: const Icon(Icons.lock_open, size: 18),
                     label: const Text('ปลดแบน'),
                     onPressed: () async {
-                      // 💡 กล่องยืนยันการปลดแบน
                       final confirm = await showDialog(
                         context: context,
                         builder: (ctx) => AlertDialog(
