@@ -6,11 +6,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 class RunningMapCard extends StatefulWidget {
   final Set<Polyline> polylines;
   final LatLng? currentPosition;
+  final bool isFullScreen;
 
   const RunningMapCard({
     super.key,
     required this.polylines,
     this.currentPosition,
+    this.isFullScreen = false,
   });
 
   @override
