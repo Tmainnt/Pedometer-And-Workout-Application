@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 extension NumberFormatter on int {
   String get formatCount {
     if (this >= 1000000000000) {
@@ -51,5 +53,21 @@ extension NumberFormatter on int {
     }
 
     return '$this นาที';
+  }
+}
+
+extension TimestampTimeAgo on Timestamp {
+  String get toTimeAgo {
+    final diff = DateTime.now().difference(toDate());
+
+    if (diff.inDays > 0) {
+      return '${diff.inDays} วัน';
+    } else if (diff.inHours > 0) {
+      return '${diff.inHours} ชม.';
+    } else if (diff.inMinutes > 0) {
+      return '${diff.inMinutes} นาที';
+    } else {
+      return 'เมื่อสักครู่';
+    }
   }
 }
