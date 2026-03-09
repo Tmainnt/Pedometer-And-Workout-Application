@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pedometer_application/sceen/community/edit_profile.dart';
 import 'package:pedometer_application/models/post.dart';
 import 'package:pedometer_application/models/user.dart';
+import 'package:pedometer_application/sceen/community/follow_list_page.dart';
 import 'package:pedometer_application/theme/font_color.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
@@ -203,6 +204,8 @@ class ProfilePageState extends State<ProfilePage> {
                                                         ReportUserDialog(
                                                           reportedUID:
                                                               widget.UID,
+                                                          reportedName:
+                                                              userData.name,
                                                         ),
                                                   );
                                                 }
@@ -251,20 +254,55 @@ class ProfilePageState extends State<ProfilePage> {
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          SizedBox(
-                                            width: 100,
-                                            child: _buildDetails(
-                                              'ผู้ติดตาม',
-                                              userData.totalFollower,
+                                          GestureDetector(
+                                            onTap: () => Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => FollowListPage(
+                                                  profileOwnerUID: widget.UID,
+                                                  currentUID: FirebaseAuth
+                                                      .instance
+                                                      .currentUser!
+                                                      .uid,
+                                                  currentRole:
+                                                      widget.currentUserRole,
+                                                  isFollowersMode: true,
+                                                ),
+                                              ),
+                                            ),
+                                            child: SizedBox(
+                                              width: 100,
+                                              child: _buildDetails(
+                                                'ผู้ติดตาม',
+                                                userData.totalFollower,
+                                              ),
                                             ),
                                           ),
-                                          SizedBox(
-                                            width: 130,
-                                            child: _buildDetails(
-                                              'กำลังติดตาม',
-                                              userData.totalFollowing,
+                                          GestureDetector(
+                                            onTap: () => Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => FollowListPage(
+                                                  profileOwnerUID: widget.UID,
+                                                  currentUID: FirebaseAuth
+                                                      .instance
+                                                      .currentUser!
+                                                      .uid,
+                                                  currentRole:
+                                                      widget.currentUserRole,
+                                                  isFollowersMode: false,
+                                                ),
+                                              ),
+                                            ),
+                                            child: SizedBox(
+                                              width: 130,
+                                              child: _buildDetails(
+                                                'กำลังติดตาม',
+                                                userData.totalFollowing,
+                                              ),
                                             ),
                                           ),
+
                                           SizedBox(
                                             width: 100,
                                             child: _buildDetails(
