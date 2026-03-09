@@ -39,4 +39,17 @@ extension NumberFormatter on int {
 
     return toString();
   }
+
+  String get timeHourFormatShort {
+    if (this >= 60) {
+      double hours = this / 60;
+      String formatted = hours
+          .toStringAsFixed(1)
+          .replaceFirst(RegExp(r'\.0$'), '');
+
+      return '$formatted ชม.';
+    }
+
+    return '$this นาที';
+  }
 }
