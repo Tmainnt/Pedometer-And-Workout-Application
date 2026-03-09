@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserModel {
+  final String _UID;
   final String _name;
   final String? _PhotoUrl;
   final String? _backgroundImage;
@@ -20,6 +21,7 @@ class UserModel {
   final double _BMI;
 
   UserModel({
+    required String? UID,
     required String? name,
     required String? phUrl,
     required String? bgImage,
@@ -37,7 +39,8 @@ class UserModel {
     required int? tPost,
     required int? tTime,
     required double? bmi,
-  }) : _name = name ?? '',
+  }) : _UID = UID ?? '',
+       _name = name ?? '',
        _PhotoUrl = phUrl ?? '',
        _backgroundImage = bgImage ?? '',
        _bio = bio ?? '',
@@ -59,6 +62,7 @@ class UserModel {
     final data = doc.data();
 
     return UserModel(
+      UID: doc.id,
       name: data?['user_name'],
       phUrl: data?['user_photoUrl'],
       bgImage: data?['user_background_ImageUrl'],
@@ -79,6 +83,7 @@ class UserModel {
     );
   }
 
+  String get UID => _UID;
   String get name => _name;
   String get phoUrl => _PhotoUrl ?? '';
   String get backgroundImage => _backgroundImage ?? '';
