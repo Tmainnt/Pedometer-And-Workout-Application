@@ -44,16 +44,7 @@ class _CommentTileState extends State<CommentTile> {
     final replyToName = widget.commentData['replyToName'] as String?;
     final timestamp = widget.commentData['create_timestamp'] as Timestamp?;
 
-    String timeStr = '';
-    if (timestamp != null) {
-      final diff = DateTime.now().difference(timestamp.toDate());
-      if (diff.inDays > 0)
-        timeStr = '${diff.inDays} วัน';
-      else if (diff.inMinutes > 0)
-        timeStr = diff.inMinutes.timeHourFormatShort;
-      else
-        timeStr = 'เมื่อสักครู่';
-    }
+    final timeStr = timestamp?.toTimeAgo ?? '';
 
     return FutureBuilder<UserModel>(
       future: FirestoreService().getUserDataByUID(commentUID),
@@ -194,6 +185,10 @@ class _CommentTileState extends State<CommentTile> {
                                           context: context,
                                           builder: (_) => ReportUserDialog(
                                             reportedUID: commentUID,
+                                            reportedName: name,
+                                            postId: widget.postId,
+                                            commentId: widget.commentId,
+                                            commentText: content,
                                           ),
                                         );
                                       },
