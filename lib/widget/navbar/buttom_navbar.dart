@@ -30,6 +30,11 @@ class BottomNavbar extends StatelessWidget {
           label: 'ท่าฝึก',
         ),
         BottomNavigationBarItem(icon: Icon(Icons.group), label: 'ชุมชน'),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.notifications),
+          label: 'แจ้งเตือน',
+        ),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'โปรไฟล์'),
       ],
     );
   }
