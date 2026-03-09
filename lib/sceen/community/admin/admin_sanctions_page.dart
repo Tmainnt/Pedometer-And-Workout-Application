@@ -15,6 +15,8 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
   DocumentSnapshot? _lastDocument;
   bool _isLoading = false;
   bool _hasMore = true;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = "";
 
   @override
   void initState() {
@@ -22,18 +24,28 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
     _loadMoreSanctions();
   }
 
-  Future<void> _loadMoreSanctions() async {
-    if (_isLoading || !_hasMore) return;
+  Future<void> _loadMoreSanctions({bool isRefresh = false}) async {
+    if (_isLoading || (!_hasMore && !isRefresh)) return;
 
     setState(() {
       _isLoading = true;
+      if (isRefresh) {
+        _sanctions = [];
+        _lastDocument = null;
+        _hasMore = true;
+      }
     });
 
     try {
       Query query = FirebaseFirestore.instance
           .collection('sanctions')
-          .orderBy('create_timestamp', descending: true)
-          .limit(_limit);
+          .orderBy('create_timestamp', descending: true);
+
+      if (_searchQuery.isNotEmpty) {
+        query = query.where('user_UID', isEqualTo: _searchQuery.trim());
+      }
+
+      query = query.limit(_limit);
 
       if (_lastDocument != null) {
         query = query.startAfterDocument(_lastDocument!);
@@ -45,10 +57,7 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
         setState(() {
           _sanctions.addAll(snapshot.docs);
           _lastDocument = snapshot.docs.last;
-
-          if (snapshot.docs.length < _limit) {
-            _hasMore = false;
-          }
+          if (snapshot.docs.length < _limit) _hasMore = false;
         });
       } else {
         setState(() {
@@ -56,7 +65,7 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
         });
       }
     } catch (e) {
-      print("Error loading sanctions: $e");
+      print("Error: $e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -109,13 +118,27 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
                 const SizedBox(height: 5),
                 Container(
                   width: double.infinity,
+                  constraints: const BoxConstraints(maxHeight: 180),
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: Colors.grey[100],
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.grey[300]!),
                   ),
-                  child: Text(detail, style: const TextStyle(fontSize: 14)),
+                  child: Scrollbar(
+                    thickness: 4.0,
+                    radius: const Radius.circular(10),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: Text(
+                          detail,
+                          style: const TextStyle(fontSize: 14, height: 1.4),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -167,105 +190,148 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
         ),
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.close, color: Colors.white),
         ),
       ),
-      body: _sanctions.isEmpty && _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _sanctions.isEmpty
-          ? const Center(child: Text("ยังไม่มีประวัติการลงโทษ"))
-          : ListView.builder(
-              itemCount: _sanctions.length + (_hasMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _sanctions.length) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 20.0),
-                    child: Center(
-                      child: _isLoading
-                          ? const CircularProgressIndicator()
-                          : ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: WidgetColors()
-                                    .applicationMainTheme()
-                                    .first,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              onPressed: _loadMoreSanctions,
-                              child: const Text(
-                                "โหลดถัดไป",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                    ),
-                  );
-                }
-
-                final data = _sanctions[index].data() as Map<String, dynamic>;
-                final type = data['type'] ?? 'N/A';
-                final reason = data['reason'] ?? 'N/A';
-                final userUID = data['user_UID'] ?? 'N/A';
-                final detail = data['detail'] ?? '';
-                final timestamp = data['create_timestamp'] as Timestamp?;
-
-                final dateStr = timestamp != null
-                    ? "${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}"
-                    : "";
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  child: InkWell(
-                    onTap: () {
-                      _showSanctionDetailDialog(data);
-                    },
-                    borderRadius: BorderRadius.circular(10),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.redAccent,
-                        child: Icon(Icons.warning, color: Colors.white),
-                      ),
-                      title: Text("ประเภท: $type"),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("เหตุผล: $reason"),
-                          if (detail.isNotEmpty)
-                            Text(
-                              "รายละเอียด: $detail",
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.blueGrey,
-                              ),
-                            ),
-                          Text(
-                            "ผู้ถูกลงโทษ (UID): $userUID",
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          if (dateStr.isNotEmpty)
-                            Text(
-                              "วันที่: $dateStr",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                        ],
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ),
-                );
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'ค้นหาด้วย User UID...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = "";
+                          });
+                          _loadMoreSanctions(isRefresh: true);
+                        },
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 15,
+                ),
+              ),
+              onSubmitted: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+                _loadMoreSanctions(isRefresh: true);
               },
             ),
+          ),
+
+          Expanded(
+            child: _sanctions.isEmpty && _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _sanctions.isEmpty
+                ? const Center(child: Text("ยังไม่มีประวัติการลงโทษ"))
+                : ListView.builder(
+                    itemCount: _sanctions.length + (_hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index == _sanctions.length) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 20.0),
+                          child: Center(
+                            child: _isLoading
+                                ? const CircularProgressIndicator()
+                                : ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: WidgetColors()
+                                          .applicationMainTheme()
+                                          .first,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    onPressed: _loadMoreSanctions,
+                                    child: const Text(
+                                      "โหลดถัดไป",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  ),
+                          ),
+                        );
+                      }
+
+                      final data =
+                          _sanctions[index].data() as Map<String, dynamic>;
+                      final type = data['type'] ?? 'N/A';
+                      final reason = data['reason'] ?? 'N/A';
+                      final userUID = data['user_UID'] ?? 'N/A';
+                      final detail = data['detail'] ?? '';
+                      final timestamp = data['create_timestamp'] as Timestamp?;
+
+                      final dateStr = timestamp != null
+                          ? "${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}"
+                          : "";
+
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        child: InkWell(
+                          onTap: () {
+                            _showSanctionDetailDialog(data);
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: ListTile(
+                            leading: const CircleAvatar(
+                              backgroundColor: Colors.redAccent,
+                              child: Icon(Icons.warning, color: Colors.white),
+                            ),
+                            title: Text("ประเภท: $type"),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("เหตุผล: $reason"),
+                                if (detail.isNotEmpty)
+                                  Text(
+                                    "รายละเอียด: $detail",
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.blueGrey,
+                                    ),
+                                  ),
+                                Text(
+                                  "ผู้ถูกลงโทษ (UID): $userUID",
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                if (dateStr.isNotEmpty)
+                                  Text(
+                                    "วันที่: $dateStr",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
