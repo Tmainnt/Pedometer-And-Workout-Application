@@ -9,9 +9,8 @@ class Post {
   String? _imageUrl;
   int _totalLike;
   int _totalComment;
-  DateTime _timestamp; // เวลาที่โพสต์ถูกสร้างครั้งแรก เก็บแยกกับการแก้ไข
-  DateTime
-  _updateTimestamp; // เวลาที่โพสต์ถูกแก้ไข เวลาตรงนี้จะเปลี่ยน เอาไว้สำหรับให้ admin เช็คเวลาการเปลี่ยนแปลงของโพสต์ล่าสุด
+  DateTime _timestamp;
+  DateTime _updateTimestamp;
 
   Post({
     required String postID,
@@ -35,8 +34,8 @@ class Post {
        _timestamp = timestamp,
        _updateTimestamp = updateTimestamp;
 
-  factory Post.fromFirestore(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data();
+  factory Post.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
 
     return Post(
       postID: doc.id,
