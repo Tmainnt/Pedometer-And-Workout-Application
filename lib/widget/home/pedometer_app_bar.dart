@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:pedometer_application/sceen/community/admin/banned_user_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
 import 'package:pedometer_application/sceen/community/admin/admin_reports_page.dart';
@@ -15,7 +16,7 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
     return FutureBuilder(
       future: firestoreService.getUserData(),
       builder: (context, snapshot) {
-        String role = "";
+        String role = '';
 
         if (snapshot.hasData) {
           role = snapshot.data!.role;
@@ -57,7 +58,7 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
             ],
           ),
 
-          leading: role == "admin"
+          leading: role == 'admin'
               ? PopupMenuButton<String>(
                   icon: Icon(
                     Icons.menu,
@@ -65,38 +66,55 @@ class PedometerAppBar extends StatelessWidget implements PreferredSizeWidget {
                     size: 35,
                   ),
                   onSelected: (value) {
-                    if (value == "reports") {
+                    if (value == 'reports') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => AdminReportsPage()),
                       );
-                    } else if (value == "sanctions") {
+                    } else if (value == 'sanctions') {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const AdminSanctionsPage(),
                         ),
                       );
+                    } else if (value == 'bannedUsers') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BannedUsersPage(),
+                        ),
+                      );
                     }
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(
-                      value: "reports",
+                      value: 'reports',
                       child: Row(
                         children: [
                           Icon(Icons.flag),
                           SizedBox(width: 10),
-                          Text("ดูรายงาน"),
+                          Text('ดูรายงาน'),
                         ],
                       ),
                     ),
                     const PopupMenuItem(
-                      value: "sanctions",
+                      value: 'sanctions',
                       child: Row(
                         children: [
                           Icon(Icons.gavel),
                           SizedBox(width: 10),
-                          Text("ประวัติการลงโทษ"),
+                          Text('ประวัติการลงโทษ'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'bannedUsers',
+                      child: Row(
+                        children: [
+                          Icon(Icons.person_off),
+                          SizedBox(width: 10),
+                          Text('บัญชีที่ถูกระงับ'),
                         ],
                       ),
                     ),
