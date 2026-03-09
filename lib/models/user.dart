@@ -16,6 +16,7 @@ class UserModel {
   final int _totalFollower;
   final int _totalFollowing;
   final int _totalPost;
+  final int _totalTime;
   final double _BMI;
 
   UserModel({
@@ -34,6 +35,7 @@ class UserModel {
     required int? tFollower,
     required int? tFollowing,
     required int? tPost,
+    required int? tTime,
     required double? bmi,
   }) : _name = name ?? '',
        _PhotoUrl = phUrl ?? '',
@@ -50,6 +52,7 @@ class UserModel {
        _totalFollower = tFollower ?? 0,
        _totalFollowing = tFollowing ?? 0,
        _totalPost = tPost ?? 0,
+       _totalTime = tTime ?? 0,
        _BMI = bmi ?? 0;
 
   factory UserModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
@@ -71,6 +74,7 @@ class UserModel {
       tFollower: data?['user_total_follower'],
       tFollowing: data?['user_total_following'],
       tPost: data?['user_total_post'],
+      tTime: data?['user_total_time'],
       bmi: data?['user_BMI'],
     );
   }
@@ -90,5 +94,6 @@ class UserModel {
   int get totalFollower => _totalFollower;
   int get totalFollowing => _totalFollowing;
   int get totalPost => _totalPost;
+  int get totalTime => _totalTime;
   double get BMI => _BMI;
 }
