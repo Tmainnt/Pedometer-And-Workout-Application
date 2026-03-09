@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -51,6 +53,12 @@ class _RunningMapCardState extends State<RunningMapCard> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
         child: GoogleMap(
+          // เพิ่ม gestureRecognizers เพื่อแก้ปัญหา Gesture Conflict กับ ScrollView
+          gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+            Factory<OneSequenceGestureRecognizer>(
+              () => EagerGestureRecognizer(),
+            ),
+          },
           initialCameraPosition: CameraPosition(
             target: widget.currentPosition ?? const LatLng(13.7563, 100.5018),
             zoom: 15,
