@@ -24,22 +24,27 @@ class WorkoutStatsHeader extends StatelessWidget {
           style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
         ),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            StatItem(
-              label: "Pace",
-              value: '${pace.toStringAsFixed(2)} min/km',
-              icon: Icons.timer_outlined,
+            Expanded(
+              child: StatItem(
+                label: "Pace",
+                value: '${pace.toStringAsFixed(2)} min/km',
+                icon: Icons.timer_outlined,
+              ),
             ),
-            StatItem(
-              label: "kcal",
-              value: kcal.toStringAsFixed(2),
-              icon: Icons.local_fire_department_outlined,
+            Expanded(
+              child: StatItem(
+                label: "kcal",
+                value: kcal.toStringAsFixed(2),
+                icon: Icons.local_fire_department_outlined,
+              ),
             ),
-            StatItem(
-              label: "Duration",
-              value: formatTime(totalSeconds),
-              icon: Icons.access_time,
+            Expanded(
+              child: StatItem(
+                label: "Duration",
+                value: formatTime(totalSeconds),
+                icon: Icons.access_time,
+              ),
             ),
           ],
         ),
