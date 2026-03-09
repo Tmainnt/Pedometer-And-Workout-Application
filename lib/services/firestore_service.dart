@@ -5,7 +5,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/models/feeling.dart';
+import 'package:pedometer_application/models/notification.dart';
 import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/report.dart';
 import 'package:pedometer_application/models/user.dart';
 
 class FirestoreService {
@@ -56,6 +58,19 @@ class FirestoreService {
     return query.docs.map((doc) => Post.fromFirestore(doc)).toList();
   }
 
+  Future<Post?> getOnePostById(String postId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection("posts")
+        .doc(postId)
+        .get();
+
+    if (!doc.exists) {
+      return null;
+    }
+
+    return Post.fromFirestore(doc);
+  }
+
   Future<List<Post>> getPostsPaginated({DocumentSnapshot? lastDocument}) async {
     Query query = FirebaseFirestore.instance
         .collection('posts')
@@ -79,7 +94,7 @@ class FirestoreService {
 
   dynamic checkHasData(AsyncSnapshot snapshot) {
     if (snapshot.hasError) {
-      return Center(child: Text("เกิดข้อผิดพลาดในการอ่านข้อมูล"));
+      return Center(child: Text('เอผิดพลาดในการอ่านข้อมูล'));
     }
 
     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -192,7 +207,7 @@ class FirestoreService {
   }
 
   Future<void> unlikePost(String postID) async {
-    if (postID.isEmpty) return; // ดักไว้เหมือนกัน
+    if (postID.isEmpty) return;
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -204,15 +219,198 @@ class FirestoreService {
     });
   }
 
-  Future<void> addComment(String postID, String content) async {
-    await postCollection.doc(postID).collection('postComment').add({
-      'UID': FirebaseAuth.instance.currentUser!.uid,
+  Future<void> addComment({
+    required String postId,
+    required String postOwnerUid,
+    required String currentUID,
+    required String content,
+    File? image,
+    String? replyingToCommentId,
+    String? replyingToName,
+    String? replyingToUid,
+  }) async {
+    String imageUrl = '';
+
+    if (image != null) {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('comment_images')
+          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await ref.putFile(image);
+      imageUrl = await ref.getDownloadURL();
+    }
+
+    final batch = FirebaseFirestore.instance.batch();
+
+    final commentRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc();
+
+    batch.set(commentRef, {
+      'UID': currentUID,
       'content': content,
+      'imageUrl': imageUrl,
+      'totalLike': 0,
+      'parentCommentId': replyingToCommentId,
+      'replyToName': replyingToName,
+      'replyToUid': replyingToUid,
+      'create_timestamp': FieldValue.serverTimestamp(),
+      'update_timestamp': FieldValue.serverTimestamp(),
     });
 
-    await postCollection.doc(postID).update({
-      'total_comment': FieldValue.increment(1),
-    });
+    final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
+    batch.update(postRef, {'total_comment': FieldValue.increment(1)});
+
+    if (replyingToUid != null) {
+      if (replyingToUid != currentUID) {
+        final notifRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(replyingToUid)
+            .collection('notifications')
+            .doc();
+
+        batch.set(notifRef, {
+          'type': 'reply_comment',
+          'senderUID': currentUID,
+          'postID': postId,
+          'commentID': commentRef.id,
+          'message': content,
+          'isRead': false,
+          'create_timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+    } else {
+      if (postOwnerUid != currentUID) {
+        final notifRef = FirebaseFirestore.instance
+            .collection('users')
+            .doc(postOwnerUid)
+            .collection('notifications')
+            .doc();
+
+        batch.set(notifRef, {
+          'type': 'comment_post',
+          'senderUID': currentUID,
+          'postID': postId,
+          'commentID': commentRef.id,
+          'message': 'ได้แสดงความคิดเห็นในโพสต์ของคุณ',
+          'isRead': false,
+          'create_timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> deleteComment(String postId, String commentId) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    final commentRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc(commentId);
+    batch.delete(commentRef);
+
+    final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
+    batch.update(postRef, {'totalComment': FieldValue.increment(-1)});
+
+    await batch.commit();
+  }
+
+  Future<void> updateComment({
+    required String postId,
+    required String commentId,
+    required String content,
+    required String imageUrl,
+  }) async {
+    await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc(commentId)
+        .update({'content': content, 'imageUrl': imageUrl});
+  }
+
+  Stream<QuerySnapshot> getCommentsStream(String postId) {
+    return FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .orderBy('create_timestamp', descending: false)
+        .snapshots();
+  }
+
+  Stream<bool> hasUserLikedComment(
+    String postId,
+    String commentId,
+    String currentUid,
+  ) {
+    return FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc(commentId)
+        .collection('commentLiked')
+        .doc(currentUid)
+        .snapshots()
+        .map((snapshot) => snapshot.exists);
+  }
+
+  Future<void> likeComment(
+    String postId,
+    String commentId,
+    String currentUid,
+  ) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    final likeRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc(commentId)
+        .collection('commentLiked')
+        .doc(currentUid);
+
+    final commentRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc(commentId);
+
+    batch.set(likeRef, {'create_timestamp': FieldValue.serverTimestamp()});
+    batch.update(commentRef, {'total_like': FieldValue.increment(1)});
+
+    await batch.commit();
+  }
+
+  Future<void> unlikeComment(
+    String postId,
+    String commentId,
+    String currentUid,
+  ) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    final likeRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc(commentId)
+        .collection('commentLiked')
+        .doc(currentUid);
+
+    final commentRef = FirebaseFirestore.instance
+        .collection('posts')
+        .doc(postId)
+        .collection('comment')
+        .doc(commentId);
+
+    batch.delete(likeRef);
+    batch.update(commentRef, {'totalLike': FieldValue.increment(-1)});
+
+    await batch.commit();
   }
 
   Future<void> newPost(Post post, File? imageFile) async {
@@ -238,6 +436,10 @@ class FirestoreService {
       'total_comment': 0,
       'total_like': 0,
       'update_timestamp': FieldValue.serverTimestamp(),
+    });
+
+    await usersCollection.doc(post.UID).update({
+      'user_total_post': FieldValue.increment(1),
     });
   }
 
@@ -322,5 +524,190 @@ class FirestoreService {
       'user_photoUrl': updateProfileUrl,
       'user_background_ImageUrl': updateBackgroundUrl,
     });
+  }
+
+  Future<void> deletePostByAdmin(
+    Post post,
+    String reason,
+    String detail,
+  ) async {
+    final adminUID = FirebaseAuth.instance.currentUser!.uid;
+
+    await FirebaseFirestore.instance
+        .collection('posts')
+        .doc(post.postID)
+        .delete();
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(post.UID)
+        .collection('notifications')
+        .add({
+          'type': 'post_deleted',
+          'postId': post.postID,
+          'reason': reason,
+          'detail': detail,
+          'deletedBy': adminUID,
+          'create_timestamp': FieldValue.serverTimestamp(),
+          'isRead': false,
+        });
+
+    final docRef = FirebaseFirestore.instance.collection('sanctions').doc();
+    await docRef.set({
+      'type': 'post_deleted',
+      'user_UID': post.UID,
+      'reason': reason,
+      'admin_UID': adminUID,
+      'create_timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<List<ReportModel>> getReportsStream() {
+    return FirebaseFirestore.instance
+        .collection('reports')
+        .where('status', isEqualTo: 'pending')
+        .orderBy('create_timestamp', descending: true)
+        .limit(20)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => ReportModel.fromDoc(doc)).toList();
+        });
+  }
+
+  void clearUserCache() {
+    _userCache.clear();
+  }
+
+  void clearUserCacheByUID(String uid) {
+    if (_userCache.containsKey(uid)) {
+      _userCache.remove(uid);
+    }
+  }
+
+  Stream<List<NotificationModel>> getNotificationStream() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
+
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .orderBy('create_timestamp', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => NotificationModel.fromFirestore(doc))
+              .toList(),
+        );
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .doc(notificationId)
+        .delete();
+  }
+
+  Future<void> reportUser(
+    String reportedUid,
+    String postId,
+    String reason,
+    String detail,
+  ) async {
+    final reporterUid = FirebaseAuth.instance.currentUser?.uid;
+    if (reporterUid == null) return;
+
+    await FirebaseFirestore.instance.collection('reports').add({
+      'type': 'user_report',
+      'reported_uid': reportedUid,
+      'reporter_uid': reporterUid,
+      'postId': postId,
+      'reason': reason,
+      'detail': detail,
+      'status': 'pending',
+      'create_timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Stream<bool> hasUserFollowed(String targetUid, String currentUid) {
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUid)
+        .collection('following')
+        .doc(targetUid)
+        .snapshots()
+        .map((snapshot) => snapshot.exists);
+  }
+
+  Future<void> followUser(String targetUid, String currentUid) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    final followingRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUid)
+        .collection('following')
+        .doc(targetUid);
+    final followerRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(targetUid)
+        .collection('follower')
+        .doc(currentUid);
+
+    final currentUserRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUid);
+    final targetUserRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(targetUid);
+
+    batch.set(followingRef, {'create_timestamp': FieldValue.serverTimestamp()});
+    batch.set(followerRef, {'create_timestamp': FieldValue.serverTimestamp()});
+
+    batch.update(currentUserRef, {
+      'user_total_following': FieldValue.increment(1),
+    });
+    batch.update(targetUserRef, {
+      'user_total_follower': FieldValue.increment(1),
+    });
+
+    await batch.commit();
+  }
+
+  Future<void> unfollowUser(String targetUid, String currentUid) async {
+    final batch = FirebaseFirestore.instance.batch();
+
+    final followingRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUid)
+        .collection('following')
+        .doc(targetUid);
+    final followerRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(targetUid)
+        .collection('follower')
+        .doc(currentUid);
+    final currentUserRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUid);
+    final targetUserRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(targetUid);
+
+    batch.delete(followingRef);
+    batch.delete(followerRef);
+
+    batch.update(currentUserRef, {
+      'user_total_following': FieldValue.increment(-1),
+    });
+    batch.update(targetUserRef, {
+      'user_total_follower': FieldValue.increment(-1),
+    });
+
+    await batch.commit();
   }
 }
