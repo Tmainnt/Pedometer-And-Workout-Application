@@ -347,9 +347,6 @@ class _CommentPageState extends State<CommentPage> {
           IconButton(
             onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.close, color: Colors.white),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withOpacity(0.2),
-            ),
           ),
           const SizedBox(width: 10),
           GestureDetector(
@@ -438,12 +435,6 @@ class _CommentPageState extends State<CommentPage> {
                 );
               },
             ),
-          IconButton(
-            onPressed: () {
-              /* BottomSheet จัดการโพสต์ */
-            },
-            icon: const Icon(Icons.more_horiz, color: Colors.white),
-          ),
         ],
       ),
     );
