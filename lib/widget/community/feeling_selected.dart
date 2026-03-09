@@ -115,18 +115,7 @@ class FeelingSelectedState extends State<FeelingSelected> {
               Navigator.pop(context);
             }
           },
-          icon: Icon(
-            Icons.cancel,
-            color: Colors.white,
-            size: 40,
-            shadows: [
-              Shadow(
-                color: WidgetColors().boxShadowColor(),
-                blurRadius: 3,
-                offset: Offset(0, 3),
-              ),
-            ],
-          ),
+          icon: Icon(Icons.close, color: Colors.white),
         ),
       ),
       body: Container(
