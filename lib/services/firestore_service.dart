@@ -4,10 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/models/feeling.dart';
-import 'package:pedometer_application/models/notification.dart';
-import 'package:pedometer_application/models/post.dart';
-import 'package:pedometer_application/models/report.dart';
+import 'package:pedometer_application/models/community/feeling.dart';
+import 'package:pedometer_application/models/community/notification.dart';
+import 'package:pedometer_application/models/community/post.dart';
+import 'package:pedometer_application/models/community/report.dart';
 import 'package:pedometer_application/models/user.dart';
 
 class FirestoreService {

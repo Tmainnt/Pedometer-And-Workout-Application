@@ -3,7 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:pedometer_application/sceen/community/admin/admin_delete_page.dart';
-import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/models/user.dart';
 import 'package:pedometer_application/sceen/community/comment_page.dart';
 import 'package:pedometer_application/sceen/community/profile_page.dart';

@@ -4,7 +4,7 @@ import '../../services/firestore_service.dart';
 import 'package:flutter/material.dart';
 import '../../theme/widget_colors.dart';
 import '../../widget/community/create_posts.dart';
-import '../../models/post.dart';
+import '../../models/community/post.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({super.key});

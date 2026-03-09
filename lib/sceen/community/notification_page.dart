@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/models/notification.dart';
+import 'package:pedometer_application/models/community/notification.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 

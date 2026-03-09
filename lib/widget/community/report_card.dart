@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/models/report.dart';
+import 'package:pedometer_application/models/community/report.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/services/report_service.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';

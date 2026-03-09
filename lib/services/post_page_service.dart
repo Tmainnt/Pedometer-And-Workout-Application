@@ -1,4 +1,4 @@
-import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/community/post.dart';
 
 class PostPageService {
   final Post postData;
