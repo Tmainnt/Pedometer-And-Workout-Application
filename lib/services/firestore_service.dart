@@ -9,6 +9,8 @@ import 'package:pedometer_application/models/community/notification.dart';
 import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/models/community/report.dart';
 import 'package:pedometer_application/models/user.dart';
+import 'package:pedometer_application/models/workout/workout_category.dart';
+import 'package:pedometer_application/models/workout/workouts.dart';
 
 class FirestoreService {
   static final Map<String, UserModel> _userCache = {};
@@ -795,5 +797,35 @@ class FirestoreService {
     });
 
     await batch.commit();
+  }
+
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  Stream<List<WorkoutCategory>> getCategories() {
+    return _db
+        .collection('workout_categories')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => WorkoutCategory.fromFirestore(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  Stream<List<Workout>> getWorkouts({String? categoryId}) {
+    Query query = _db.collection('workouts');
+    if (categoryId != null) {
+      query = query.where('category_id', isEqualTo: categoryId);
+    }
+    return query.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map(
+            (doc) => Workout.fromFirestore(
+              doc.data() as Map<String, dynamic>,
+              doc.id,
+            ),
+          )
+          .toList(),
+    );
   }
 }
