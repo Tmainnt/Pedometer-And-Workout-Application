@@ -96,4 +96,40 @@ class RunRepository {
       rethrow; // ใช้ rethrow ตามหลัก Dart ที่ดีกว่า throw e
     }
   }
-} // 👈 ปีกกาปิดคลาสย้ายมาอยู่ตรงนี้แล้ว
+
+  Future<QuerySnapshot> getPaginatedUserRuns(
+    String userId, {
+    DocumentSnapshot? lastDocument,
+    int limit = 10,
+  }) {
+    // สร้าง Query พื้นฐาน: หาของ user คนนี้, เรียงจากล่าสุดไปเก่าสุด, ดึงมาแค่จำนวน limit (ค่าเริ่มต้นคือ 10)
+    var query = _firestore
+        .collection('runs')
+        .where('userId', isEqualTo: userId)
+        .orderBy('timestamp', descending: true)
+        .limit(limit);
+
+    // ถ้ามีการส่ง "เอกสารใบสุดท้าย" (lastDocument) มาด้วย ให้เริ่มดึง "ต่อจาก" ใบนั้น
+    if (lastDocument != null) {
+      query = query.startAfterDocument(lastDocument);
+    }
+
+    // คืนค่าเป็น Future ไม่ใช่ Stream เพราะเราต้องการดึงเป็นรอบๆ ไม่ได้ดึงตลอดเวลา
+    return query.get();
+  }
+
+  // 🟢 ฟังก์ชันใหม่: นับจำนวนประวัติการวิ่ง "ของจริง" จากคอลเลกชัน runs
+  Future<int> getTotalRunsCount(String userId) async {
+    try {
+      final query = _firestore.collection('runs').where('userId', isEqualTo: userId);
+      // ใช้คำสั่ง .count() เพื่อให้ฝั่ง Server นับจำนวนให้โดยไม่ดึงข้อมูล
+      final aggregateQuery = await query.count().get(); 
+      return aggregateQuery.count ?? 0;
+    } catch (e) {
+      print("Error counting runs: $e");
+      return 0;
+    }
+  }
+} 
+
+
