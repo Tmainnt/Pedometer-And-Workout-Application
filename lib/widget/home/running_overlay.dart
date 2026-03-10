@@ -13,6 +13,7 @@ class RunningOverlay extends StatelessWidget {
   final VoidCallback onPause;
   final VoidCallback onResume;
   final VoidCallback onStop;
+  final bool isRunning;
 
   const RunningOverlay({
     super.key,
@@ -25,6 +26,7 @@ class RunningOverlay extends StatelessWidget {
     required this.onPause,
     required this.onResume,
     required this.onStop,
+    required this.isRunning,
   });
 
   @override
@@ -48,6 +50,7 @@ class RunningOverlay extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             WorkoutStatsHeader(
+              isRunning: isRunning,
               distance: distance,
               pace: pace,
               kcal: (distance * 60),

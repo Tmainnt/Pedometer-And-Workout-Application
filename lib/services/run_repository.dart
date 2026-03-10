@@ -31,4 +31,58 @@ class RunRepository {
         .orderBy('timestamp', descending: true)
         .snapshots();
   }
-}
+
+  // 🟢 1. ดึงข้อมูลรายวันมาแสดง (ย้ายเข้ามาอยู่ในคลาสแล้ว)
+  Future<Map<String, dynamic>?> getDailyStats(
+    String userId,
+    String dateString,
+  ) async {
+    try {
+      final doc = await _firestore // ใช้ _firestore ที่ประกาศไว้ด้านบน
+          .collection('users')
+          .doc(userId)
+          .collection('daily_stats')
+          .doc(dateString) // ใช้ YYYY-MM-DD เป็น Document ID
+          .get();
+
+      if (doc.exists) {
+        return doc.data();
+      }
+      return null;
+    } catch (e) {
+      print("Error getting daily stats: $e");
+      return null;
+    }
+  }
+
+  // 🟢 2. อัปเดตข้อมูลรายวัน (ย้ายเข้ามาอยู่ในคลาสแล้ว)
+  Future<void> updateDailyStats({
+    required String userId,
+    required String dateString,
+    required double distance,
+    required int steps,
+    required double kcal,
+    required int seconds,
+  }) async {
+    try {
+      await _firestore // ใช้ _firestore ที่ประกาศไว้ด้านบน
+          .collection('users')
+          .doc(userId)
+          .collection('daily_stats')
+          .doc(dateString) // ใช้ YYYY-MM-DD เป็น Document ID
+          .set(
+            {
+              'distance': distance,
+              'steps': steps,
+              'kcal': kcal,
+              'seconds': seconds,
+              'updatedAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          ); // merge: true เพื่ออัปเดตค่าเก่า ไม่ใช่ลบเขียนใหม่
+    } catch (e) {
+      print("Error updating daily stats: $e");
+      rethrow; // ใช้ rethrow ตามหลัก Dart ที่ดีกว่า throw e
+    }
+  }
+} // 👈 ปีกกาปิดคลาสย้ายมาอยู่ตรงนี้แล้ว

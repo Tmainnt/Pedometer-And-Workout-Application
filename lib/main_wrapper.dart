@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/page/history_page.dart';
-import 'package:pedometer_application/page/home_page.dart';
+import 'package:pedometer_application/screen/history_page.dart';
+import 'package:pedometer_application/screen/home_page.dart';
 import 'package:pedometer_application/widget/navbar/buttom_navbar.dart';
 
 class MainWrapper extends StatefulWidget {

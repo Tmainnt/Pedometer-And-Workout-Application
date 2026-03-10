@@ -11,6 +11,7 @@ class MainTrackingCard extends StatelessWidget {
   final Set<Polyline> polylines;
   final LatLng? currentPosition;
   final Widget actionButton; // รับปุ่มเข้ามาเป็น Widget เลยจะยืดหยุ่นที่สุด
+  final bool isRunning;
 
   // 2. สร้าง Constructor
   const MainTrackingCard({
@@ -21,6 +22,7 @@ class MainTrackingCard extends StatelessWidget {
     required this.polylines,
     required this.currentPosition,
     required this.actionButton,
+    required this.isRunning
   });
 
   @override
@@ -59,6 +61,7 @@ class MainTrackingCard extends StatelessWidget {
                     pace: pace,
                     kcal: (distance * 60),
                     totalSeconds: totalSeconds,
+                    isRunning: isRunning,
                   ),
                   const SizedBox(height: 20),
                   RunningMapCard(

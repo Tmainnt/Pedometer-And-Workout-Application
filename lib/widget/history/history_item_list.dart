@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:pedometer_application/widget/history/history_mini_map.dart';
-import '../../page/run_detail_page.dart';
+import '../../screen/run_detail_page.dart';
 
 class HistoryListItem extends StatelessWidget {
   final Map<String, dynamic> data;

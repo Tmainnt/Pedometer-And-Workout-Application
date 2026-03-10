@@ -12,7 +12,7 @@ class RunningMapCard extends StatefulWidget {
     super.key,
     required this.polylines,
     this.currentPosition,
-    this.isFullScreen = false,
+    this.isFullScreen = false, // ค่าเริ่มต้นคือไม่เต็มจอ (โหมดการ์ดปกติ)
   });
 
   @override
@@ -41,19 +41,29 @@ class _RunningMapCardState extends State<RunningMapCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 220,
+      // 🟢 1. จัดการความสูง: ถ้าเต็มจอให้ขยายสุด (double.infinity) ถ้าโหมดปกติให้สูง 220
+      height: widget.isFullScreen ? double.infinity : 220,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        // 🟢 2. จัดการขอบโค้งกรอบนอก: ถ้าเต็มจอให้เป็นกรอบเหลี่ยม (zero)
+        borderRadius: widget.isFullScreen 
+            ? BorderRadius.zero 
+            : BorderRadius.circular(25),
+        // 🟢 3. จัดการเงา: ถ้าเต็มจอไม่ต้องมีเงา (ปล่อย list ว่าง)
+        boxShadow: widget.isFullScreen 
+            ? [] 
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 5),
+                ),
+              ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
+        // 🟢 4. จัดการขอบโค้งของตัว ClipRRect ด้านในให้ล้อไปกับกรอบนอก
+        borderRadius: widget.isFullScreen 
+            ? BorderRadius.zero 
+            : BorderRadius.circular(15),
         child: GoogleMap(
           // เพิ่ม gestureRecognizers เพื่อแก้ปัญหา Gesture Conflict กับ ScrollView
           gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{

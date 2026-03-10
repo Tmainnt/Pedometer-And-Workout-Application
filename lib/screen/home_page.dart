@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/controller/home_controller.dart';
-import 'package:pedometer_application/utils/run_status.dart'; // สำคัญ: ต้อง Import
+import 'package:pedometer_application/utils/run_status.dart';
 import 'package:pedometer_application/widget/home/health_stats_card.dart';
 import 'package:pedometer_application/widget/home/main_tracking_card.dart';
 import 'package:pedometer_application/widget/home/run_action_button.dart';
@@ -66,12 +66,21 @@ class HomePageState extends State<HomePage> {
                 child: Column(
                   children: [
                     MainTrackingCard(
-                      distance: _controller.currentDistanceKm,
-                      pace: double.tryParse(
-                            _controller.currentPace.replaceAll(':', '.'),
-                          ) ??
-                          0.0,
-                      totalSeconds: _controller.currentSeconds,
+                      // 🟢 สลับข้อมูลระยะทาง: วิ่งอยู่ใช้ current ไม่วิ่งใช้ daily
+                      distance: isRunning 
+                          ? _controller.currentDistanceKm 
+                          : _controller.dailyDistanceKm, 
+                      
+                      // 🟢 สลับข้อมูล Pace: วิ่งอยู่ใช้ current ไม่วิ่งให้เป็น 0.0
+                      pace: isRunning 
+                          ? (double.tryParse(_controller.currentPace.replaceAll(':', '.')) ?? 0.0)
+                          : 0.0,
+                          
+                      // 🟢 สลับข้อมูลเวลา: วิ่งอยู่ใช้ current ไม่วิ่งให้เป็น 0
+                      totalSeconds: isRunning 
+                          ? _controller.currentSeconds 
+                          : _controller.dailySeconds,
+                          
                       polylines: _controller.polylines,
                       currentPosition: _controller.currentLatLng,
                       actionButton: RunActionButtons(
@@ -82,10 +91,15 @@ class HomePageState extends State<HomePage> {
                         onResume: _controller.resumeRunning,
                         onStop: _controller.stopAndSaveRunning,
                       ),
+
+                      isRunning: isRunning,
                     ),
                     HealthStatsCard(
                       elevation: _controller.currentElevationGain,
-                      steps: _controller.currentSteps,
+                      // 🟢 สลับข้อมูลก้าวเดิน: วิ่งอยู่ใช้ current ไม่วิ่งใช้ daily
+                      steps: isRunning 
+                          ? _controller.currentSteps 
+                          : _controller.dailySteps, 
                     ),
                   ],
                 ),
@@ -123,6 +137,8 @@ class HomePageState extends State<HomePage> {
             left: 0,
             right: 0,
             child: RunningOverlay(
+              isRunning: isRunning,
+              // 🟢 เลเยอร์นี้โชว์เฉพาะตอนวิ่งอยู่แล้ว ใช้ current ได้เลยทั้งหมด
               distance: _controller.currentDistanceKm,
               pace: double.tryParse(
                     _controller.currentPace.replaceAll(':', '.'),
