@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/home_page.dart';
 import 'package:pedometer_application/sceen/community/notification_page.dart';
+import 'package:pedometer_application/sceen/workout/workout_page.dart';
 import 'package:pedometer_application/widget/home/pedometer_app_bar.dart';
 import 'package:pedometer_application/widget/navbar/buttom_navbar.dart';
 import 'package:pedometer_application/sceen/community/community_page.dart';
@@ -22,7 +23,7 @@ class _MainWrapperState extends State<MainWrapper> {
   late final List<Widget> _pages = [
     const HomePage(),
     const Center(child: Text("หน้า รายงาน")),
-    const Center(child: Text("หน้า ท่าฝึก")),
+    const WorkoutPage(),
     const CommunityPage(),
     const NotificationPage(),
     ProfilePage(UID: uid, currentUserRole: "user"),
