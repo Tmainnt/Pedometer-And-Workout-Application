@@ -22,6 +22,16 @@ class RunRepository {
       'steps': steps,
       'timestamp': FieldValue.serverTimestamp(),
     });
+
+    await _firestore.collection('users').doc(userId).set({
+      'user_total_distance': FieldValue.increment(distance),
+      'user_total_calories': FieldValue.increment(calories),
+      'user_total_step': FieldValue.increment(steps),
+      'user_total_time': FieldValue.increment(duration),
+      'user_total_runs': FieldValue.increment(1),
+    },
+    SetOptions(merge: true), 
+    );
   }
 
   Stream<QuerySnapshot> getUserRuns(String userId) {
@@ -38,12 +48,13 @@ class RunRepository {
     String dateString,
   ) async {
     try {
-      final doc = await _firestore // ใช้ _firestore ที่ประกาศไว้ด้านบน
-          .collection('users')
-          .doc(userId)
-          .collection('daily_stats')
-          .doc(dateString) // ใช้ YYYY-MM-DD เป็น Document ID
-          .get();
+      final doc =
+          await _firestore // ใช้ _firestore ที่ประกาศไว้ด้านบน
+              .collection('users')
+              .doc(userId)
+              .collection('daily_stats')
+              .doc(dateString) // ใช้ YYYY-MM-DD เป็น Document ID
+              .get();
 
       if (doc.exists) {
         return doc.data();
