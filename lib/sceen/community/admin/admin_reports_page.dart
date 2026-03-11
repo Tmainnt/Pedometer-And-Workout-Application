@@ -18,7 +18,7 @@ class AdminReportsPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'รายงานโพสต์',
+              'รายงาน',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
