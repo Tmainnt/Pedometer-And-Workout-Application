@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/models/user.dart';
-import 'package:pedometer_application/sceen/community/profile_page.dart';
+import 'package:pedometer_application/screen/community/profile_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
 import 'package:pedometer_application/widget/community/report_user_dialog.dart';

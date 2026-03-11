@@ -1,10 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:pedometer_application/services/user_repository.dart';
 import 'package:pedometer_application/utils/show_snack_bar.dart';
 
 class GoogleSigninButton extends StatelessWidget {
-  const GoogleSigninButton({super.key});
+  GoogleSigninButton({super.key});
+
+  final UserRepository _userRepository = UserRepository();
 
   Future<void> _signInWithGoogle() async {
     try {
@@ -22,7 +26,25 @@ class GoogleSigninButton extends StatelessWidget {
         idToken: googleAuth.idToken,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      final UserCredential userCrefential = await FirebaseAuth.instance
+          .signInWithCredential(credential);
+      final User? user = userCrefential.user;
+
+      if (user != null) {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (!userDoc.exists) {
+          await _userRepository.saveUser(
+            uid: user.uid,
+            username: user.displayName ?? "User_${user.uid.substring(0, 5)}",
+            email: user.email ?? "",
+          );
+          print("บันทึกข้อมูลผู้ใช้ Google รายใหม่สำเร็จ");
+        }
+      }
 
       print("Google login successfully");
     } catch (e) {
@@ -33,7 +55,7 @@ class GoogleSigninButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-   return OutlinedButton(
+    return OutlinedButton(
       onPressed: _signInWithGoogle,
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: Colors.grey.shade300),

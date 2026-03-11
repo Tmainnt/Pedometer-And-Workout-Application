@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pedometer_application/sceen/community/community_page.dart';
+import 'package:pedometer_application/screen/community/community_page.dart';
 import 'package:pedometer_application/models/feeling.dart';
 import 'package:pedometer_application/models/post.dart';
 import 'package:pedometer_application/models/user.dart';

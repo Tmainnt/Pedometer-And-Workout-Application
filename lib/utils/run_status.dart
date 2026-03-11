@@ -1,0 +1,1 @@
+enum RunStatus { notStart, running, paused }

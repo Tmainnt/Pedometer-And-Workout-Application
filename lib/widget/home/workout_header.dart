@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:pedometer_application/widget/home/stat_item.dart';
 
 class WorkoutStatsHeader extends StatelessWidget {
+  final bool isRunning; // 🟢 1. รับค่าสถานะการวิ่ง
   final double distance;
   final double pace;
   final double kcal;
@@ -9,6 +10,7 @@ class WorkoutStatsHeader extends StatelessWidget {
 
   const WorkoutStatsHeader({
     super.key,
+    required this.isRunning, // 🟢 บังคับให้ต้องส่งค่านี้เข้ามา
     required this.distance,
     required this.pace,
     required this.kcal,
@@ -19,27 +21,54 @@ class WorkoutStatsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // 🟢 2. เพิ่ม Label บอกว่าเป็นระยะทางวันนี้ (โชว์เฉพาะตอนยังไม่ได้วิ่ง)
+        if (!isRunning)
+          const Padding(
+            padding: EdgeInsets.only(top: 10.0),
+            child: Text(
+              'ระยะทางวันนี้',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black54, // สีเทาเข้มให้ดูเนียนตา
+              ),
+            ),
+          ),
+        
         Text(
-          '$distance km',
+          '${distance.toStringAsFixed(2)} km',
           style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
         ),
+        
+        const SizedBox(height: 8), // เว้นระยะนิดนึงให้ดูสบายตา
+        
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            StatItem(
-              label: "Pace",
-              value: '$pace min/km',
-              icon: Icons.timer_outlined,
+
+           if (isRunning)
+              Expanded(
+                child: StatItem(
+                  label: "Pace", // 🟢 ปรับให้เหลือแค่ "Pace" ได้เลย เพราะมันจะโชว์เฉพาะตอนวิ่งเท่านั้น
+                  value: '${pace.toStringAsFixed(2)} min/km',
+                  icon: Icons.timer_outlined,
+                ),
+              ),
+            
+            Expanded(
+              child: StatItem(
+                // 🟢 4. สลับคำว่า kcal / kcal วันนี้
+                label: isRunning ? "kcal" : "kcal วันนี้",
+                value: kcal.toStringAsFixed(2),
+                icon: Icons.local_fire_department_outlined,
+              ),
             ),
-            StatItem(
-              label: "kcal",
-              value: '$kcal',
-              icon: Icons.local_fire_department_outlined,
-            ),
-            StatItem(
-              label: "Duration",
-              value: formatTime(totalSeconds),
-              icon: Icons.access_time,
+            Expanded(
+              child: StatItem(
+                // 🟢 5. สลับคำว่า Duration / เวลาวันนี้
+                label: isRunning ? "Duration" : "เวลาวันนี้",
+                value: formatTime(totalSeconds),
+                icon: Icons.access_time,
+              ),
             ),
           ],
         ),
