@@ -31,7 +31,7 @@ class HistoryMiniMap extends StatelessWidget {
                   zoom: 14,
                 ),
                 // 💡 Lite Mode สำคัญมากสำหรับรายการที่ Scroll ได้ เพื่อประหยัด RAM
-                liteModeEnabled: true,
+                liteModeEnabled: false,
                 zoomControlsEnabled: false,
                 myLocationButtonEnabled: false,
                 compassEnabled: false,
