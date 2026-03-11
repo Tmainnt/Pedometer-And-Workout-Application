@@ -3,7 +3,6 @@ import 'package:pedometer_application/controller/history_controller.dart';
 import 'package:pedometer_application/widget/history/pagination_bar.dart';
 import 'package:pedometer_application/widget/history/history_list_content.dart';
 import 'package:pedometer_application/widget/history/history_filter_bar.dart';
-import '../widget/navbar/pedometer_app_bar.dart';
 import '../widget/history/weekly_summary_card.dart';
 
 class HistoryPage extends StatefulWidget {
