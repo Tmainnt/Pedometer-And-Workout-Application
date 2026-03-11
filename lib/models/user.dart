@@ -30,8 +30,8 @@ class UserModel {
     required int? age,
     required int? height,
     required int? weight,
-    required int? tDistance,
-    required int? tCalories,
+    required dynamic tDistance,
+    required dynamic tCalories,
     required int? tStep,
     required int? lsComplete,
     required int? tFollower,
@@ -48,8 +48,8 @@ class UserModel {
        _age = age ?? 0,
        _height = height ?? 0,
        _weight = weight ?? 0,
-       _totalDistance = tDistance ?? 0,
-       _totalCalories = tCalories ?? 0,
+       _totalDistance = tDistance,
+       _totalCalories = tCalories,
        _totalStep = tStep ?? 0,
        _lessonsComplete = lsComplete ?? 0,
        _totalFollower = tFollower ?? 0,
@@ -71,8 +71,8 @@ class UserModel {
       age: data?['user_age'],
       height: data?['user_height'],
       weight: data?['user_weight'],
-      tDistance: data?['user_total_distance'],
-      tCalories: data?['user_total_calories'],
+      tDistance: safeInt(data?['user_total_distance']),
+      tCalories: safeInt(data?['user_total_calories']),
       tStep: data?['user_total_step'],
       lsComplete: data?['user_lessons_completed'],
       tFollower: data?['user_total_follower'],
@@ -101,4 +101,11 @@ class UserModel {
   int get totalPost => _totalPost;
   int get totalTime => _totalTime;
   double get BMI => _BMI;
+}
+
+int safeInt(dynamic value) {
+  if (value == null) return 0;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value) ?? 0;
+  return 0;
 }
