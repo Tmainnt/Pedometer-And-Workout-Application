@@ -3,6 +3,8 @@ class ReportModel {
   final String postId;
   final String postOwnerId;
   final String reportedUID;
+  final String reporterUID;
+  final String reporterName;
   final String reason;
   final String detail;
   final String status;
@@ -15,6 +17,8 @@ class ReportModel {
     required this.postId,
     required this.postOwnerId,
     required this.reportedUID,
+    required this.reporterUID,
+    required this.reporterName,
     required this.reason,
     required this.detail,
     required this.status,
@@ -31,6 +35,8 @@ class ReportModel {
       postOwnerId: data['postOwnerId'] as String? ?? '',
       postId: data['postId'] as String? ?? '',
       reportedUID: data['reported_uid'] as String? ?? '',
+      reporterName: data['reporter_uid'] as String? ?? '',
+      reporterUID: data['reporter_name'] as String? ?? '',
       detail: data['detail'] as String? ?? '',
       reason: data['reason'] as String? ?? '',
       status: data['status'] as String? ?? 'pending',
