@@ -17,56 +17,132 @@ class HistoryController extends ChangeNotifier {
   DateTime? startDate;
   DateTime? endDate;
 
+  String sortBy = 'timestamp';
+  String distanceFilter = 'all';
+
+  // 🟢 เพิ่มตัวแปรเก็บยอดสรุป
+  double filteredDistance = 0;
+  int filteredDuration = 0;
+  double filteredCalories = 0;
+
   HistoryController() {
     fetchTrueCountAndStart();
   }
 
-  void setFilterDate(DateTime? startDate, DateTime? endDate) {
-    this.startDate = startDate;
-    this.endDate = endDate;
-    allFetchedDocs.clear(); // ล้างของเก่าทิ้ง
+  // 🟢 1. ฟังก์ชันคำนวณยอดสรุปจาก Server (ใช้ Aggregate sum)
+  Future<void> _fetchSummary() async {
+    if (user == null) return;
+
+    filteredDistance = 0;
+    filteredDuration = 0;
+    filteredCalories = 0;
+
+    try {
+      var query = FirebaseFirestore.instance
+          .collection('runs')
+          .where('userId', isEqualTo: user!.uid);
+
+      if (distanceFilter == 'light') {
+        query = query.where('distance', isLessThan: 5);
+      } else if (distanceFilter == 'medium') {
+        query = query.where('distance', isGreaterThanOrEqualTo: 5).where('distance', isLessThanOrEqualTo: 10);
+      } else if (distanceFilter == 'long') {
+        query = query.where('distance', isGreaterThan: 10);
+      }
+
+      if (startDate != null && endDate != null) {
+        Timestamp startTs = Timestamp.fromDate(DateTime(startDate!.year, startDate!.month, startDate!.day, 0, 0, 0));
+        Timestamp endTs = Timestamp.fromDate(DateTime(endDate!.year, endDate!.month, endDate!.day, 23, 59, 59));
+        query = query.where('timestamp', isGreaterThanOrEqualTo: startTs).where('timestamp', isLessThanOrEqualTo: endTs);
+      }
+
+      final aggregateSnapshot = await query
+          .aggregate(sum('distance'), sum('duration'), sum('calories'))
+          .get();
+
+      filteredDistance = (aggregateSnapshot.getSum('distance') ?? 0).toDouble();
+      filteredDuration = (aggregateSnapshot.getSum('duration') ?? 0).toInt();
+      filteredCalories = (aggregateSnapshot.getSum('calories') ?? 0).toDouble();
+      
+      notifyListeners();
+    } catch (e) {
+      print("Error fetching summary: $e");
+    }
+  }
+
+  void _resetAndFetch() {
+    allFetchedDocs.clear();
     hasMore = true;
     currentPage = 1;
     trueRunsCount = 0;
+    _fetchSummary();
     notifyListeners();
-    fetchTrueCountAndStart(); // สั่งดึงข้อมูลรอบใหม่
+    fetchTrueCountAndStart();
   }
 
-  // 🟢 Logic 1: ดึงจำนวนของจริงตอนเปิดหน้า
+  void setFilterDate(DateTime? start, DateTime? end) {
+    startDate = start;
+    endDate = end;
+    if (start != null) {
+      sortBy = 'timestamp';
+      distanceFilter = 'all';
+    }
+    _resetAndFetch();
+  }
+
+  void setSortBy(String value) {
+    sortBy = value;
+    if (value != 'distance') distanceFilter = 'all';
+    _resetAndFetch();
+  }
+
+  void setDistanceFilter(String value) {
+    distanceFilter = value;
+    if (value != 'all') {
+      sortBy = 'distance';
+    
+    } else {
+      sortBy = 'timestamp';
+    }
+    _resetAndFetch();
+  }
+
+  // 🟢 2. อัปเดตฟังก์ชันนี้ให้เรียกใช้ _fetchSummary()
   Future<void> fetchTrueCountAndStart() async {
     if (user == null) return;
-    
-    int realCount = await _repo.getTotalRunsCount(
-      user!.uid,
-      startDate: startDate,
-      endDate: endDate,
-    );
-    trueRunsCount = realCount;
-    notifyListeners(); // แจ้ง UI ให้ขยับ
 
+    // ดึงจำนวน (Count) และ ยอดรวม (Sum) พร้อมกัน
+    await Future.wait([
+      _repo.getTotalRunsCount(
+        user!.uid,
+        startDate: startDate,
+        endDate: endDate,
+        distanceFilter: distanceFilter,
+      ).then((value) => trueRunsCount = value),
+      _fetchSummary(), // 👈 ดึงยอดสรุปตาม Filter ปัจจุบัน
+    ]);
+
+    notifyListeners();
     await goToPage(1);
   }
 
-  // 🟢 Logic 2: เปลี่ยนหน้าและดึงข้อมูล
   Future<void> goToPage(int page) async {
     if (user == null) return;
-
     int requiredCount = page * limit;
     isLoading = true;
-    notifyListeners(); // แจ้ง UI ว่ากำลังโหลด
+    notifyListeners();
 
     try {
       while (allFetchedDocs.length < requiredCount && hasMore) {
-        DocumentSnapshot? lastDoc = allFetchedDocs.isNotEmpty
-            ? allFetchedDocs.last
-            : null;
-
+        DocumentSnapshot? lastDoc = allFetchedDocs.isNotEmpty ? allFetchedDocs.last : null;
         final snapshot = await _repo.getPaginatedUserRuns(
           user!.uid,
           lastDocument: lastDoc,
           limit: limit,
           startDate: startDate,
           endDate: endDate,
+          sortBy: sortBy,
+          distanceFilter: distanceFilter,
         );
 
         if (snapshot.docs.isEmpty) {
@@ -76,31 +152,24 @@ class HistoryController extends ChangeNotifier {
           if (snapshot.docs.length < limit) hasMore = false;
         }
       }
-
       currentPage = page;
     } catch (e) {
       print("Error changing page: $e");
     } finally {
       isLoading = false;
-      notifyListeners(); // แจ้ง UI ว่าโหลดเสร็จแล้ว
+      notifyListeners();
     }
   }
 
-  // 🟢 Helper: คำนวณหน้าทั้งหมดให้เสร็จสรรพ (UI จะได้ไม่ต้องคิดเลขเอง)
   int get totalPages {
     int pages = (trueRunsCount / limit).ceil();
     return pages == 0 ? 1 : pages;
   }
 
-  // 🟢 Helper: หั่นเฉพาะข้อมูลของหน้าปัจจุบันส่งไปให้ UI
   List<DocumentSnapshot> get currentPageDocs {
     int startIndex = (currentPage - 1) * limit;
     int endIndex = startIndex + limit;
     if (endIndex > allFetchedDocs.length) endIndex = allFetchedDocs.length;
-
-    if (startIndex < allFetchedDocs.length) {
-      return allFetchedDocs.sublist(startIndex, endIndex);
-    }
-    return [];
+    return (startIndex < allFetchedDocs.length) ? allFetchedDocs.sublist(startIndex, endIndex) : [];
   }
 }

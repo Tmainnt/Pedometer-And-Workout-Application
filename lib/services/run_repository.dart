@@ -40,23 +40,10 @@ class RunRepository {
         .snapshots();
   }
 
-  // 🟢 1. ดึงข้อมูลรายวันมาแสดง (ย้ายเข้ามาอยู่ในคลาสแล้ว)
-  Future<Map<String, dynamic>?> getDailyStats(
-    String userId,
-    String dateString,
-  ) async {
+  Future<Map<String, dynamic>?> getDailyStats(String userId, String dateString) async {
     try {
-      final doc =
-          await _firestore // ใช้ _firestore ที่ประกาศไว้ด้านบน
-              .collection('users')
-              .doc(userId)
-              .collection('daily_stats')
-              .doc(dateString) // ใช้ YYYY-MM-DD เป็น Document ID
-              .get();
-
-      if (doc.exists) {
-        return doc.data();
-      }
+      final doc = await _firestore.collection('users').doc(userId).collection('daily_stats').doc(dateString).get();
+      if (doc.exists) return doc.data();
       return null;
     } catch (e) {
       print("Error getting daily stats: $e");
@@ -64,7 +51,6 @@ class RunRepository {
     }
   }
 
-  // 🟢 2. อัปเดตข้อมูลรายวัน (ย้ายเข้ามาอยู่ในคลาสแล้ว)
   Future<void> updateDailyStats({
     required String userId,
     required String dateString,
@@ -74,49 +60,46 @@ class RunRepository {
     required int seconds,
   }) async {
     try {
-      await _firestore // ใช้ _firestore ที่ประกาศไว้ด้านบน
-          .collection('users')
-          .doc(userId)
-          .collection('daily_stats')
-          .doc(dateString) // ใช้ YYYY-MM-DD เป็น Document ID
-          .set(
-            {
-              'distance': distance,
-              'steps': steps,
-              'kcal': kcal,
-              'seconds': seconds,
-              'updatedAt': FieldValue.serverTimestamp(),
-            },
-            SetOptions(merge: true),
-          ); // merge: true เพื่ออัปเดตค่าเก่า ไม่ใช่ลบเขียนใหม่
+      await _firestore.collection('users').doc(userId).collection('daily_stats').doc(dateString).set({
+        'distance': distance,
+        'steps': steps,
+        'kcal': kcal,
+        'seconds': seconds,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
     } catch (e) {
       print("Error updating daily stats: $e");
-      rethrow; // ใช้ rethrow ตามหลัก Dart ที่ดีกว่า throw e
+      rethrow;
     }
   }
 
-  // 🟢 1. ฟังก์ชันนับจำนวน
+  // 🟢 1. ฟังก์ชันนับจำนวน (รองรับ Sort และ Filter)
   Future<int> getTotalRunsCount(
     String userId, {
     DateTime? startDate,
     DateTime? endDate,
+    String distanceFilter = 'all',
   }) async {
     try {
       var query = _firestore.collection('runs').where('userId', isEqualTo: userId);
 
-      // เช็คว่ามีการส่งวันที่มาทั้งคู่
-      if (startDate != null && endDate != null) {
-        // ให้เริ่มตั้งแต่ 00:00:00 ของวันเริ่มต้น
-        DateTime startOfDay = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
-        // ไปจนถึง 23:59:59 ของวันสิ้นสุด
-        DateTime endOfEndDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      // กรองระยะทาง
+      if (distanceFilter == 'light') {
+        query = query.where('distance', isLessThan: 5);
+      } else if (distanceFilter == 'medium') {
+        query = query.where('distance', isGreaterThanOrEqualTo: 5).where('distance', isLessThanOrEqualTo: 10);
+      } else if (distanceFilter == 'long') {
+        query = query.where('distance', isGreaterThan: 10);
+      }
 
+      // กรองวันที่
+      if (startDate != null && endDate != null) {
+        DateTime startOfDay = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+        DateTime endOfEndDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
         Timestamp startTs = Timestamp.fromDate(startOfDay);
         Timestamp endTs = Timestamp.fromDate(endOfEndDay);
 
-        query = query
-            .where('timestamp', isGreaterThanOrEqualTo: startTs)
-            .where('timestamp', isLessThanOrEqualTo: endTs);
+        query = query.where('timestamp', isGreaterThanOrEqualTo: startTs).where('timestamp', isLessThanOrEqualTo: endTs);
       }
 
       final aggregateQuery = await query.count().get();
@@ -127,32 +110,41 @@ class RunRepository {
     }
   }
 
-  // 🟢 2. ฟังก์ชันดึงข้อมูลประวัติ (อัปเดตมารับเป็น startDate และ endDate)
+  // 🟢 2. ฟังก์ชันดึงข้อมูล (รองรับ Sort และ Filter)
   Future<QuerySnapshot> getPaginatedUserRuns(
     String userId, {
     DocumentSnapshot? lastDocument,
     int limit = 10,
     DateTime? startDate,
     DateTime? endDate,
+    String sortBy = 'timestamp',
+    String distanceFilter = 'all',
   }) {
     var query = _firestore.collection('runs').where('userId', isEqualTo: userId);
 
-    if (startDate != null && endDate != null) {
-      // ให้เริ่มตั้งแต่ 00:00:00 ของวันเริ่มต้น
-      DateTime startOfDay = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
-      // ไปจนถึง 23:59:59 ของวันสิ้นสุด
-      DateTime endOfEndDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+    // 1. กรองระยะทาง
+    if (distanceFilter == 'light') {
+      query = query.where('distance', isLessThan: 5);
+    } else if (distanceFilter == 'medium') {
+      query = query.where('distance', isGreaterThanOrEqualTo: 5).where('distance', isLessThanOrEqualTo: 10);
+    } else if (distanceFilter == 'long') {
+      query = query.where('distance', isGreaterThan: 10);
+    }
 
+    // 2. กรองวันที่
+    if (startDate != null && endDate != null) {
+      DateTime startOfDay = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+      DateTime endOfEndDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
       Timestamp startTs = Timestamp.fromDate(startOfDay);
       Timestamp endTs = Timestamp.fromDate(endOfEndDay);
 
-      query = query
-          .where('timestamp', isGreaterThanOrEqualTo: startTs)
-          .where('timestamp', isLessThanOrEqualTo: endTs);
+      query = query.where('timestamp', isGreaterThanOrEqualTo: startTs).where('timestamp', isLessThanOrEqualTo: endTs);
     }
 
-    query = query.orderBy('timestamp', descending: true).limit(limit);
+    // 3. จัดเรียง
+    query = query.orderBy(sortBy, descending: true).limit(limit);
 
+    // 4. แบ่งหน้า
     if (lastDocument != null) {
       query = query.startAfterDocument(lastDocument);
     }

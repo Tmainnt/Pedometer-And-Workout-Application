@@ -43,7 +43,7 @@ class WeeklySummaryCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "สรุปสัปดาห์นี้",
+            "สรุปสถิติการวิ่ง",
             style: TextStyle(
               color: Colors.white,
               fontSize: 25,
