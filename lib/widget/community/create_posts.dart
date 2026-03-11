@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:pedometer_application/sceen/community/admin/admin_delete_page.dart';
+import 'package:pedometer_application/sceen/community/admin/admin_delete_post_page.dart';
 import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/models/user.dart';
 import 'package:pedometer_application/sceen/community/comment_page.dart';
@@ -43,17 +43,24 @@ class _CreatePostsState extends State<CreatePosts> {
   }
 
   Future<void> _loadUserData() async {
-    final cachedUser = firestoreService.getCachedUser(widget.userPost.UID);
+    try {
+      final cachedUser = firestoreService.getCachedUser(widget.userPost.UID);
 
-    if (cachedUser != null) {
-      postOwnerData = cachedUser;
-    } else {
-      final data = await firestoreService.getUserDataByUID(widget.userPost.UID);
-      if (mounted) {
-        setState(() {
-          postOwnerData = data;
-        });
+      if (cachedUser != null) {
+        postOwnerData = cachedUser;
+      } else {
+        final data = await firestoreService.getUserDataByUID(
+          widget.userPost.UID,
+        );
+        if (mounted) {
+          setState(() {
+            postOwnerData = data;
+          });
+        }
       }
+    } catch (e, stackTrace) {
+      print("ข้อความ Error: $e");
+      print("รายละเอียดบรรทัดที่พัง: $stackTrace");
     }
   }
 
@@ -70,7 +77,7 @@ class _CreatePostsState extends State<CreatePosts> {
             BoxShadow(color: widgetColors.boxShadowColor(), blurRadius: 10),
           ],
         ),
-        child: const Center(child: CircularProgressIndicator()),
+        child: const Center(child: Text('ไม่สามารถโหลดข้อมูลได้')),
       );
     }
 
