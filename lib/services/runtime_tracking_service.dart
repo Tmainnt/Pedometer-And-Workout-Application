@@ -123,6 +123,7 @@ class RuntimeTrackingService {
   void pauseTracking() {
     _timer?.cancel();
     _positionStream?.cancel();
+    _stepCountStream?.cancel();
 
     lastPosition = null;
   }
@@ -136,6 +137,8 @@ class RuntimeTrackingService {
   void stopTracking() {
     _timer?.cancel();
     _positionStream?.cancel();
+    _stepCountStream?.cancel();
+
     _timer = null;
     _positionStream = null;
     lastPosition = null;
@@ -147,6 +150,7 @@ class RuntimeTrackingService {
       _onUpdateCallback!(
         _totalDistance,
         _totalSeconds,
+        
         _calculatePace(),
         _routePath,
         _totalElevationGain,
