@@ -7,6 +7,7 @@ import 'package:pedometer_application/screen/history_page.dart';
 import 'package:pedometer_application/screen/home_page.dart';
 import 'package:pedometer_application/widget/navbar/buttom_navbar.dart';
 import 'package:pedometer_application/screen/workout/workout_page.dart';
+import 'package:pedometer_application/widget/navbar/pedometer_app_bar.dart';
 
 class MainWrapper extends StatefulWidget {
   const MainWrapper({super.key});
@@ -32,6 +33,7 @@ class _MainWrapperState extends State<MainWrapper> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: PedometerAppBar(title: 'Pedometer', subtitle: '& Workout'),
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavbar(
         currentIndex: _selectedIndex,
