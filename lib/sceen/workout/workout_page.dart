@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:pedometer_application/models/workout/workout_category.dart';
 import 'package:pedometer_application/models/workout/workouts.dart';
+import 'package:pedometer_application/sceen/workout/workout_preparation_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 
 class WorkoutPage extends StatefulWidget {
@@ -11,19 +13,32 @@ class WorkoutPage extends StatefulWidget {
 }
 
 class WorkoutPageState extends State<WorkoutPage> {
-  // 1. เพิ่มตัวแปรเก็บสถานะว่าเลือกหมวดหมู่ไหนอยู่ (ถ้า null คือแสดงทั้งหมด)
+  final FirestoreService firestoreService = FirestoreService();
   String? selectedCategoryId;
 
+  String searchQuery = "";
+  late Stream<List<WorkoutCategory>> _categoriesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoriesStream = firestoreService.getCategories();
+  }
+
+  @override
   @override
   Widget build(BuildContext context) {
-    final FirestoreService firestoreService = FirestoreService();
-
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
             child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase();
+                });
+              },
               decoration: InputDecoration(
                 hintText: 'ค้นหาท่าออกกำลังกาย...',
                 prefixIcon: const Icon(Icons.search),
@@ -38,7 +53,7 @@ class WorkoutPageState extends State<WorkoutPage> {
         ),
 
         StreamBuilder<List<WorkoutCategory>>(
-          stream: firestoreService.getCategories(),
+          stream: _categoriesStream,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SliverToBoxAdapter(
@@ -64,14 +79,11 @@ class WorkoutPageState extends State<WorkoutPage> {
                 ),
                 delegate: SliverChildBuilderDelegate((context, index) {
                   final category = categories[index];
-                  // เช็คว่า Category นี้ตรงกับที่เลือกไว้หรือไม่
                   final isSelected = selectedCategoryId == category.id;
 
-                  // 2. หุ้มด้วย GestureDetector เพื่อจับ Event การกด
                   return GestureDetector(
                     onTap: () {
                       setState(() {
-                        // ถ้ากดซ้ำอันเดิม ให้ยกเลิกการเลือก (โชว์ทั้งหมด)
                         selectedCategoryId = isSelected ? null : category.id;
                       });
                     },
@@ -87,30 +99,31 @@ class WorkoutPageState extends State<WorkoutPage> {
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              "ท่าออกกำลังกายแนะนำ",
+              "ท่าออกกำลังกาย",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
         ),
 
-        // 4. Workouts List
         StreamBuilder<List<Workout>>(
-          // 3. ส่ง selectedCategoryId ไปให้ FirestoreService เพื่อ Filter
           stream: firestoreService.getWorkouts(categoryId: selectedCategoryId),
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return const SliverToBoxAdapter(child: SizedBox());
+              return SliverToBoxAdapter(child: Text(snapshot.error.toString()));
             }
-            final workouts = snapshot.data!;
 
-            // กรณีไม่มีข้อมูลในหมวดนั้น
+            final allWorkouts = snapshot.data!;
+            final workouts = allWorkouts.where((workout) {
+              return workout.workoutName.toLowerCase().contains(searchQuery);
+            }).toList();
+
             if (workouts.isEmpty) {
               return const SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
                     padding: EdgeInsets.all(32.0),
                     child: Text(
-                      "ไม่พบท่าออกกำลังกายในหมวดนี้",
+                      "ไม่พบท่าออกกำลังกาย",
                       style: TextStyle(color: Colors.grey),
                     ),
                   ),
@@ -130,13 +143,11 @@ class WorkoutPageState extends State<WorkoutPage> {
     );
   }
 
-  // 4. ปรับ UI Card ให้รับค่า isSelected และเปลี่ยนสี
   Widget categoryCard(WorkoutCategory category, bool isSelected) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        // เปลี่ยนสีขอบเป็นสีน้ำเงินถ้าถูกเลือก
         border: Border.all(
           color: isSelected ? Colors.blue : Colors.transparent,
           width: 2,
@@ -148,9 +159,9 @@ class WorkoutPageState extends State<WorkoutPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.network(
+          SvgPicture.asset(
             category.imageUrl,
-            height: 40,
+            height: 30,
             errorBuilder: (c, e, s) => const Icon(Icons.fitness_center),
           ),
           const SizedBox(height: 8),
@@ -158,9 +169,7 @@ class WorkoutPageState extends State<WorkoutPage> {
             category.categoriesName,
             style: TextStyle(
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected
-                  ? Colors.blue
-                  : Colors.black, // เปลี่ยนสีตัวหนังสือด้วยให้เข้ากัน
+              color: isSelected ? Colors.blue : Colors.black,
             ),
           ),
         ],
@@ -169,7 +178,6 @@ class WorkoutPageState extends State<WorkoutPage> {
   }
 
   Widget workoutItemCard(Workout workout) {
-    // ใช้โค้ดเดิมของคุณได้เลยครับ
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -193,10 +201,11 @@ class WorkoutPageState extends State<WorkoutPage> {
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (c, e, s) => Container(
+                  errorBuilder: (c, e, s) => Image.asset(
+                    'assets/default_background.png',
                     height: 180,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.image),
+                    width: double.infinity,
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
@@ -220,7 +229,13 @@ class WorkoutPageState extends State<WorkoutPage> {
                     ),
                     IconButton(
                       onPressed: () {
-                        /* TODO: ไปหน้าเตรียมตัว */
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                WorkoutPreparationPage(workout: workout),
+                          ),
+                        );
                       },
                       icon: Icon(
                         Icons.play_circle_fill,
