@@ -56,18 +56,7 @@ class RunDetailPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 15),
-                        Expanded(
-                          child: RunChartItem(
-                            title: "ระดับความสูง (m)",
-                            lineColor: Colors.teal,
-                            data: controller.elevationSeries,
-                            timeLabels: controller.generateTimeLabels(
-                              (runData['duration'] ?? 0) as int,
-                              controller.elevationSeries.length,
-                            ),
-                          ),
-                        ),
+                       
                       ],
                     ),
                     const SizedBox(height: 25),
