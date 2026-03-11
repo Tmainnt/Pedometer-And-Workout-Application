@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
@@ -5,14 +6,20 @@ import 'package:pedometer_application/theme/widget_colors.dart';
 class ReportUserDialog extends StatefulWidget {
   final String reportedUID;
   final String reportedName;
+  final String? reporterUID;
+  final String? reporterName;
   final String? postId;
   final String? commentId;
   final String? commentText;
+  final String label;
 
   const ReportUserDialog({
     super.key,
     required this.reportedUID,
     required this.reportedName,
+    required this.label,
+    this.reporterUID,
+    this.reporterName,
     this.postId,
     this.commentId,
     this.commentText,
@@ -30,18 +37,62 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
   String? _selectedReason;
   bool _isSubmitting = false;
 
-  final List<String> _reportReasons = [
-    'รูปโปรไฟล์หรือข้อมูลส่วนตัวไม่เหมาะสม',
-    'พฤติกรรมก่อกวนหรือสแปม',
-    'บัญชีปลอมหรือแอบอ้าง',
-    'อื่นๆ',
-  ];
+  String get _dialogTitle {
+    switch (widget.label) {
+      case 'ban_user':
+        return 'ระงับบัญชีผู้ใช้ (Ban)';
+      case 'report_comment':
+        return 'รายงานคอมเมนต์';
+      case 'report_user':
+      default:
+        return 'รายงานผู้ใช้';
+    }
+  }
+
+  String get _dialogSubtitle {
+    switch (widget.label) {
+      case 'ban_user':
+        return 'โปรดระบุเหตุผลในการระงับบัญชีผู้ใช้นี้:';
+      case 'report_comment':
+        return 'โปรดเลือกเหตุผลที่คุณต้องการรายงานคอมเมนต์นี้:';
+      case 'report_user':
+      default:
+        return 'โปรดเลือกเหตุผลที่คุณต้องการรายงานผู้ใช้นี้:';
+    }
+  }
+
+  List<String> get _reportReasons {
+    switch (widget.label) {
+      case 'ban_user':
+        return [
+          'ละเมิดกฎของชุมชนร้ายแรง',
+          'สแปมหรือหลอกลวง',
+          'โพสต์เนื้อหาไม่เหมาะสม',
+          'อื่นๆ',
+        ];
+      case 'report_comment':
+        return [
+          'ใช้คำหยาบคายหรือสร้างความเกลียดชัง',
+          'สแปมหรือโฆษณา',
+          'เนื้อหาไม่เกี่ยวข้องหรือคุกคาม',
+          'อื่นๆ',
+        ];
+      case 'report_user':
+      default:
+        return [
+          'รูปโปรไฟล์หรือข้อมูลส่วนตัวไม่เหมาะสม',
+          'พฤติกรรมก่อกวนหรือสแปม',
+          'บัญชีปลอมหรือแอบอ้าง',
+          'อื่นๆ',
+        ];
+    }
+  }
 
   Future<void> _submitReport() async {
     if (_selectedReason == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('กรุณาเลือกเหตุผลการรายงาน')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('กรุณาเลือกเหตุผล')));
       return;
     }
 
@@ -50,21 +101,41 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
     });
 
     try {
-      await firestoreService.reportUser(
-        reportedUid: widget.reportedUID,
-        reportedName: widget.reportedName,
-        postId: widget.postId ?? '',
-        commentId: widget.commentId ?? '',
-        commentText: widget.commentText ?? '',
-        reason: _selectedReason!,
-        detail: _detailController.text.trim(),
-      );
+      if (widget.label == 'ban_user') {
+        final currentAdminUID = FirebaseAuth.instance.currentUser?.uid;
+        await firestoreService.banUser(
+          targetUid: widget.reportedUID,
+          reportId: null,
+          reporterId: widget.reporterUID,
+          reporterName: widget.reporterName,
+          reason: _selectedReason!,
+          detail: _detailController.text.trim(),
+          adminUid: currentAdminUID ?? '',
+        );
+      } else if (widget.label == 'report_comment' ||
+          widget.label == 'report_user') {
+        await firestoreService.reportUserAndComment(
+          reportedUid: widget.reportedUID,
+          reportedName: widget.reportedName,
+          reporterUid: widget.reporterUID ?? '',
+          reporterName: widget.reporterName ?? '',
+          postId: widget.postId ?? '',
+          commentId: widget.commentId ?? '',
+          commentText: widget.commentText ?? '',
+          reason: _selectedReason!,
+          detail: _detailController.text.trim(),
+        );
+      }
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('ส่งรายงานสำเร็จ ขอบคุณที่ช่วยดูแลชุมชนของเรา'),
+          SnackBar(
+            content: Text(
+              widget.label == 'ban_user'
+                  ? 'ระงับบัญชีผู้ใช้สำเร็จ'
+                  : 'ส่งรายงานสำเร็จ ขอบคุณที่ช่วยดูแลชุมชนของเรา',
+            ),
           ),
         );
       }
@@ -95,11 +166,14 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       title: Row(
         children: [
-          Icon(Icons.flag, color: widgetColors.deleteWidget()),
-          SizedBox(width: 10),
+          Icon(
+            widget.label == 'ban_user' ? Icons.block : Icons.flag,
+            color: widgetColors.deleteWidget(),
+          ),
+          const SizedBox(width: 10),
           Text(
-            'รายงานผู้ใช้',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            _dialogTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
         ],
       ),
@@ -108,7 +182,7 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('โปรดเลือกเหตุผลที่คุณต้องการรายงานผู้ใช้นี้:'),
+            Text(_dialogSubtitle),
             const SizedBox(height: 10),
             ..._reportReasons.map((reason) {
               return RadioListTile<String>(
@@ -163,7 +237,10 @@ class _ReportUserDialogState extends State<ReportUserDialog> {
                     strokeWidth: 2,
                   ),
                 )
-              : const Text('ส่งรายงาน', style: TextStyle(color: Colors.white)),
+              : Text(
+                  widget.label == 'ban_user' ? 'ระงับบัญชี (Ban)' : 'ส่งรายงาน',
+                  style: const TextStyle(color: Colors.white),
+                ),
         ),
       ],
     );
