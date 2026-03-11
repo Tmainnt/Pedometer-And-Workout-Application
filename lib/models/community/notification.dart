@@ -34,7 +34,7 @@ class NotificationModel {
       deletedBy: data['deletedBy'] ?? '',
       detail: data['detail'] ?? '',
       isRead: data['isRead'] ?? false,
-      postId: data['postId'] ?? '',
+      postId: data['postID'] ?? '',
       reason: data['reason'] ?? '',
       type: data['type'] ?? '',
     );
