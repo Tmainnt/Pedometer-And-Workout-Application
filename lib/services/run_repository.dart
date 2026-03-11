@@ -29,9 +29,7 @@ class RunRepository {
       'user_total_step': FieldValue.increment(steps),
       'user_total_time': FieldValue.increment(duration),
       'user_total_runs': FieldValue.increment(1),
-    },
-    SetOptions(merge: true), 
-    );
+    }, SetOptions(merge: true));
   }
 
   Stream<QuerySnapshot> getUserRuns(String userId) {
@@ -97,39 +95,68 @@ class RunRepository {
     }
   }
 
-  Future<QuerySnapshot> getPaginatedUserRuns(
+  // 🟢 1. ฟังก์ชันนับจำนวน
+  Future<int> getTotalRunsCount(
     String userId, {
-    DocumentSnapshot? lastDocument,
-    int limit = 10,
-  }) {
-    // สร้าง Query พื้นฐาน: หาของ user คนนี้, เรียงจากล่าสุดไปเก่าสุด, ดึงมาแค่จำนวน limit (ค่าเริ่มต้นคือ 10)
-    var query = _firestore
-        .collection('runs')
-        .where('userId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
-        .limit(limit);
-
-    // ถ้ามีการส่ง "เอกสารใบสุดท้าย" (lastDocument) มาด้วย ให้เริ่มดึง "ต่อจาก" ใบนั้น
-    if (lastDocument != null) {
-      query = query.startAfterDocument(lastDocument);
-    }
-
-    // คืนค่าเป็น Future ไม่ใช่ Stream เพราะเราต้องการดึงเป็นรอบๆ ไม่ได้ดึงตลอดเวลา
-    return query.get();
-  }
-
-  // 🟢 ฟังก์ชันใหม่: นับจำนวนประวัติการวิ่ง "ของจริง" จากคอลเลกชัน runs
-  Future<int> getTotalRunsCount(String userId) async {
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
     try {
-      final query = _firestore.collection('runs').where('userId', isEqualTo: userId);
-      // ใช้คำสั่ง .count() เพื่อให้ฝั่ง Server นับจำนวนให้โดยไม่ดึงข้อมูล
-      final aggregateQuery = await query.count().get(); 
+      var query = _firestore.collection('runs').where('userId', isEqualTo: userId);
+
+      // เช็คว่ามีการส่งวันที่มาทั้งคู่
+      if (startDate != null && endDate != null) {
+        // ให้เริ่มตั้งแต่ 00:00:00 ของวันเริ่มต้น
+        DateTime startOfDay = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+        // ไปจนถึง 23:59:59 ของวันสิ้นสุด
+        DateTime endOfEndDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+
+        Timestamp startTs = Timestamp.fromDate(startOfDay);
+        Timestamp endTs = Timestamp.fromDate(endOfEndDay);
+
+        query = query
+            .where('timestamp', isGreaterThanOrEqualTo: startTs)
+            .where('timestamp', isLessThanOrEqualTo: endTs);
+      }
+
+      final aggregateQuery = await query.count().get();
       return aggregateQuery.count ?? 0;
     } catch (e) {
       print("Error counting runs: $e");
       return 0;
     }
   }
-} 
 
+  // 🟢 2. ฟังก์ชันดึงข้อมูลประวัติ (อัปเดตมารับเป็น startDate และ endDate)
+  Future<QuerySnapshot> getPaginatedUserRuns(
+    String userId, {
+    DocumentSnapshot? lastDocument,
+    int limit = 10,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    var query = _firestore.collection('runs').where('userId', isEqualTo: userId);
 
+    if (startDate != null && endDate != null) {
+      // ให้เริ่มตั้งแต่ 00:00:00 ของวันเริ่มต้น
+      DateTime startOfDay = DateTime(startDate.year, startDate.month, startDate.day, 0, 0, 0);
+      // ไปจนถึง 23:59:59 ของวันสิ้นสุด
+      DateTime endOfEndDay = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+
+      Timestamp startTs = Timestamp.fromDate(startOfDay);
+      Timestamp endTs = Timestamp.fromDate(endOfEndDay);
+
+      query = query
+          .where('timestamp', isGreaterThanOrEqualTo: startTs)
+          .where('timestamp', isLessThanOrEqualTo: endTs);
+    }
+
+    query = query.orderBy('timestamp', descending: true).limit(limit);
+
+    if (lastDocument != null) {
+      query = query.startAfterDocument(lastDocument);
+    }
+
+    return query.get();
+  }
+}

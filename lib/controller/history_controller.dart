@@ -14,18 +14,36 @@ class HistoryController extends ChangeNotifier {
   final int limit = 10;
   int trueRunsCount = 0;
 
+  DateTime? startDate;
+  DateTime? endDate;
+
   HistoryController() {
     fetchTrueCountAndStart();
+  }
+
+  void setFilterDate(DateTime? startDate, DateTime? endDate) {
+    this.startDate = startDate;
+    this.endDate = endDate;
+    allFetchedDocs.clear(); // ล้างของเก่าทิ้ง
+    hasMore = true;
+    currentPage = 1;
+    trueRunsCount = 0;
+    notifyListeners();
+    fetchTrueCountAndStart(); // สั่งดึงข้อมูลรอบใหม่
   }
 
   // 🟢 Logic 1: ดึงจำนวนของจริงตอนเปิดหน้า
   Future<void> fetchTrueCountAndStart() async {
     if (user == null) return;
     
-    int realCount = await _repo.getTotalRunsCount(user!.uid);
+    int realCount = await _repo.getTotalRunsCount(
+      user!.uid,
+      startDate: startDate,
+      endDate: endDate,
+    );
     trueRunsCount = realCount;
     notifyListeners(); // แจ้ง UI ให้ขยับ
-    
+
     await goToPage(1);
   }
 
@@ -39,12 +57,16 @@ class HistoryController extends ChangeNotifier {
 
     try {
       while (allFetchedDocs.length < requiredCount && hasMore) {
-        DocumentSnapshot? lastDoc = allFetchedDocs.isNotEmpty ? allFetchedDocs.last : null;
+        DocumentSnapshot? lastDoc = allFetchedDocs.isNotEmpty
+            ? allFetchedDocs.last
+            : null;
 
         final snapshot = await _repo.getPaginatedUserRuns(
           user!.uid,
           lastDocument: lastDoc,
           limit: limit,
+          startDate: startDate,
+          endDate: endDate,
         );
 
         if (snapshot.docs.isEmpty) {

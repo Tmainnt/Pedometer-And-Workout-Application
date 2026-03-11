@@ -44,14 +44,16 @@ class WorkoutStatsHeader extends StatelessWidget {
         
         Row(
           children: [
-            Expanded(
-              child: StatItem(
-                // 🟢 3. สลับคำว่า Pace / Pace วันนี้
-                label: isRunning ? "Pace" : "Pace วันนี้",
-                value: '${pace.toStringAsFixed(2)} min/km',
-                icon: Icons.timer_outlined,
+
+           if (isRunning)
+              Expanded(
+                child: StatItem(
+                  label: "Pace", // 🟢 ปรับให้เหลือแค่ "Pace" ได้เลย เพราะมันจะโชว์เฉพาะตอนวิ่งเท่านั้น
+                  value: '${pace.toStringAsFixed(2)} min/km',
+                  icon: Icons.timer_outlined,
+                ),
               ),
-            ),
+            
             Expanded(
               child: StatItem(
                 // 🟢 4. สลับคำว่า kcal / kcal วันนี้

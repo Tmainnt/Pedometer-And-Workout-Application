@@ -1,8 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/controller/history_controller.dart'; // อย่าลืม Import Controller นะครับ
-import 'package:pedometer_application/widget/history/history_item_list.dart';
+import 'package:pedometer_application/controller/history_controller.dart';
 import 'package:pedometer_application/widget/history/pagination_bar.dart';
+import 'package:pedometer_application/widget/history/history_date_filter.dart'; 
+import 'package:pedometer_application/widget/history/history_list_content.dart'; 
 import '../widget/navbar/pedometer_app_bar.dart';
 import '../widget/history/weekly_summary_card.dart';
 
@@ -14,13 +15,11 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  // 🟢 เรียกใช้ Controller
   final HistoryController _controller = HistoryController();
 
   @override
   void initState() {
     super.initState();
-    // 🟢 รอฟังการอัปเดตจาก Controller (เหมือนที่ทำใน HomePage)
     _controller.addListener(() {
       if (mounted) setState(() {});
     });
@@ -57,9 +56,6 @@ class _HistoryPageState extends State<HistoryPage> {
           int dur = (userData['user_total_time'] ?? 0).toInt();
           double cal = (userData['user_total_calories'] ?? 0).toDouble();
 
-          // 🟢 เรียกข้อมูลที่ผ่านการคำนวณจาก Controller แล้ว มาใช้ได้เลยทันที
-          final currentPageDocs = _controller.currentPageDocs;
-
           return CustomScrollView(
             slivers: [
               SliverPadding(
@@ -72,55 +68,26 @@ class _HistoryPageState extends State<HistoryPage> {
                         distance: dist,
                         seconds: dur,
                         cal: cal,
-                        count: _controller.trueRunsCount > 0 
-                            ? _controller.trueRunsCount 
+                        count: _controller.trueRunsCount > 0
+                            ? _controller.trueRunsCount
                             : _controller.allFetchedDocs.length,
                       ),
                       const SizedBox(height: 25),
-                      const Text(
-                        "กิจกรรมล่าสุด",
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
+                      HistoryDateFilter(controller: _controller),
                     ],
                   ),
                 ),
               ),
 
-              if (_controller.isLoading)
-                const SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(60.0),
-                      child: CircularProgressIndicator(color: Color(0xFF7E8CFD)),
-                    ),
-                  ),
-                )
-              else if (currentPageDocs.isEmpty)
-                const SliverToBoxAdapter(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: Text("ยังไม่มีประวัติการวิ่งในหน้านี้", style: TextStyle(color: Colors.grey)),
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final data = currentPageDocs[index].data() as Map<String, dynamic>;
-                      return HistoryListItem(data: data);
-                    }, childCount: currentPageDocs.length),
-                  ),
-                ),
+              // 🟢 2. เรียกใช้ Widget ใหม่ตรงนี้เลย! สั้นและสะอาดสุดๆ
+              HistoryListContent(controller: _controller), 
 
               SliverToBoxAdapter(
                 child: PaginationBar(
                   totalPages: _controller.totalPages,
                   currentPage: _controller.currentPage,
                   isLoading: _controller.isLoading,
-                  onPageChanged: _controller.goToPage, // 🟢 โยนฟังก์ชันของ Controller เข้าไปเลย
+                  onPageChanged: _controller.goToPage,
                 ),
               ),
 
