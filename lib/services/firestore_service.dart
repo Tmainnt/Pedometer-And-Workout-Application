@@ -9,6 +9,7 @@ import 'package:pedometer_application/models/community/notification.dart';
 import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/models/community/report.dart';
 import 'package:pedometer_application/models/user.dart';
+import 'package:pedometer_application/models/workout/exercise_step.dart';
 import 'package:pedometer_application/models/workout/workout_category.dart';
 import 'package:pedometer_application/models/workout/workouts.dart';
 
@@ -96,7 +97,7 @@ class FirestoreService {
 
   dynamic checkHasData(AsyncSnapshot snapshot) {
     if (snapshot.hasError) {
-      return Center(child: Text('เอผิดพลาดในการอ่านข้อมูล'));
+      return Center(child: Text('ผิดพลาดในการอ่านข้อมูล ${snapshot.error}'));
     }
 
     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -306,7 +307,11 @@ class FirestoreService {
     await batch.commit();
   }
 
-  Future<void> deleteComment(String postId, String commentId) async {
+  Future<void> deleteComment(
+    String postId,
+    String commentId, {
+    String? reason,
+  }) async {
     final currentUid = FirebaseAuth.instance.currentUser?.uid;
     final batch = FirebaseFirestore.instance.batch();
 
@@ -332,10 +337,11 @@ class FirestoreService {
 
         batch.set(notifRef, {
           'type': 'comment_deleted',
-          'reason': 'ละเมิดกฎของชุมชน',
+          'reason': reason ?? 'ละเมิดกฎของชุมชน',
           'detail': 'คอมเมนต์ของคุณถูกลบ: "$commentText"',
           'isRead': false,
           'create_timestamp': FieldValue.serverTimestamp(),
+          'postId': postId,
         });
       }
     }
@@ -343,7 +349,7 @@ class FirestoreService {
     batch.delete(commentRef);
 
     final postRef = FirebaseFirestore.instance.collection('posts').doc(postId);
-    batch.update(postRef, {'totalComment': FieldValue.increment(-1)});
+    batch.update(postRef, {'total_comment': FieldValue.increment(-1)});
 
     await batch.commit();
   }
@@ -641,23 +647,26 @@ class FirestoreService {
         .delete();
   }
 
-  Future<void> reportUser({
+  Future<void> reportUserAndComment({
     required String reportedUid,
     required String reportedName,
+    required String reporterUid,
+    required String reporterName,
     required String postId,
     required String commentId,
     required String commentText,
     required String reason,
     required String detail,
   }) async {
-    final reporterUid = FirebaseAuth.instance.currentUser?.uid;
-    if (reporterUid == null) return;
+    //final reporterUid = FirebaseAuth.instance.currentUser?.uid;
+    //if (reporterUid == null) return;
 
     await FirebaseFirestore.instance.collection('reports').add({
       'type': 'comment_report',
       'reported_uid': reportedUid,
       'reported_name': reportedName,
       'reporter_uid': reporterUid,
+      'reportrt_name': reporterName,
       'postId': postId,
       'commentId': commentId,
       'commentText': commentText,
@@ -670,8 +679,12 @@ class FirestoreService {
 
   Future<void> banUser({
     required String targetUid,
-    required String reportId,
+    required String? reportId,
+    required String? reporterId,
+    required String? reporterName,
     required String reason,
+    required String detail,
+    required String adminUid,
   }) async {
     final adminUid = FirebaseAuth.instance.currentUser?.uid;
     if (adminUid == null) return;
@@ -689,9 +702,13 @@ class FirestoreService {
     batch.set(sanctionRef, {
       'user_UID': targetUid,
       'admin_UID': adminUid,
-      'report_id': reportId,
+      'reportBy_UID': reporterId ?? '',
+      'reportBy_name': reporterName ?? '',
+      'report_id': reportId ?? '',
       'reason': reason,
+      'detail': detail,
       'type': 'ban',
+      'adminUid': adminUid,
       'create_timestamp': FieldValue.serverTimestamp(),
     });
 
@@ -827,5 +844,30 @@ class FirestoreService {
           )
           .toList(),
     );
+  }
+
+  Stream<List<ExerciseStep>> getExerciseSteps(String workoutId) {
+    return _db
+        .collection('workouts')
+        .doc(workoutId)
+        .collection('exercise_steps')
+        .orderBy('order')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ExerciseStep.fromFirestore(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  Future<void> saveWorkoutToUSerHistory(
+    Map<String, dynamic> historyData,
+    User user,
+  ) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('workout_history')
+        .add(historyData);
   }
 }
