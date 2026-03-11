@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:pedometer_application/models/workout/workout_category.dart';
 import 'package:pedometer_application/models/workout/workouts.dart';
-import 'package:pedometer_application/sceen/workout/workout_preparation_page.dart';
+import 'package:pedometer_application/screen/workout/workout_preparation_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 
 class WorkoutPage extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/models/workout/exercise_step.dart';
 import 'package:pedometer_application/models/workout/workouts.dart';
-import 'package:pedometer_application/sceen/workout/workout_active_page.dart';
+import 'package:pedometer_application/screen/workout/workout_active_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/theme/font_color.dart';
 

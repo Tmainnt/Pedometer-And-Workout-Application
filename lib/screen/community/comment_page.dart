@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/models/user.dart';
-import 'package:pedometer_application/sceen/community/profile_page.dart';
+import 'package:pedometer_application/screen/community/profile_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/services/post_page_service.dart';
 import 'package:pedometer_application/theme/font_color.dart';
