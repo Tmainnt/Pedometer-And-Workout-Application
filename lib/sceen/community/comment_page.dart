@@ -291,6 +291,7 @@ class _CommentPageState extends State<CommentPage> {
                         currentUID: currentUID,
                         postId: widget.userPost.postID ?? '',
                         commentId: doc.id,
+                        currentUserName: widget.userData.name,
                         isReply: isReply,
                         onProfileTap: () => _goToProfile(commentData['UID']),
                         onReplyTap: (userName, targetUid) {
