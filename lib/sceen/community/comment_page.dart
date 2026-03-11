@@ -5,7 +5,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/models/user.dart';
 import 'package:pedometer_application/sceen/community/profile_page.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
@@ -291,6 +291,7 @@ class _CommentPageState extends State<CommentPage> {
                         currentUID: currentUID,
                         postId: widget.userPost.postID ?? '',
                         commentId: doc.id,
+                        currentUserName: widget.userData.name,
                         isReply: isReply,
                         onProfileTap: () => _goToProfile(commentData['UID']),
                         onReplyTap: (userName, targetUid) {

@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/sceen/community/edit_profile.dart';
-import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/models/user.dart';
 import 'package:pedometer_application/sceen/community/follow_list_page.dart';
 import 'package:pedometer_application/theme/font_color.dart';
@@ -74,6 +74,7 @@ class ProfilePageState extends State<ProfilePage> {
           }
 
           final userData = snapshot.data!;
+          final currentUID = FirebaseAuth.instance.currentUser!.uid;
 
           return RefreshIndicator(
             onRefresh: _handleRefresh,
@@ -155,12 +156,7 @@ class ProfilePageState extends State<ProfilePage> {
                                   children: [
                                     Align(
                                       alignment: Alignment.centerRight,
-                                      child:
-                                          widget.UID ==
-                                              FirebaseAuth
-                                                  .instance
-                                                  .currentUser!
-                                                  .uid
+                                      child: widget.UID == currentUID
                                           ? ElevatedButton(
                                               style: ElevatedButton.styleFrom(
                                                 shape: RoundedRectangleBorder(
@@ -190,46 +186,156 @@ class ProfilePageState extends State<ProfilePage> {
                                                 ),
                                               ),
                                             )
-                                          : PopupMenuButton<String>(
-                                              icon: Icon(
-                                                Icons.more_horiz,
-                                                color: fontColor.textDark(),
-                                                size: 28,
-                                              ),
-                                              onSelected: (value) {
-                                                if (value == 'report') {
-                                                  showDialog(
-                                                    context: context,
-                                                    builder: (context) =>
-                                                        ReportUserDialog(
-                                                          reportedUID:
-                                                              widget.UID,
-                                                          reportedName:
-                                                              userData.name,
-                                                        ),
-                                                  );
-                                                }
-                                              },
-                                              itemBuilder: (context) => [
-                                                PopupMenuItem(
-                                                  value: 'report',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        Icons.flag,
-                                                        color: fontColor
-                                                            .errorColor(),
+                                          : Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                StreamBuilder<bool>(
+                                                  stream: firestoreService
+                                                      .hasUserFollowed(
+                                                        widget.UID,
+                                                        currentUID,
                                                       ),
-                                                      const SizedBox(width: 8),
-                                                      Text(
-                                                        'รายงานผู้ใช้',
-                                                        style: TextStyle(
-                                                          color: fontColor
-                                                              .errorColor(),
+                                                  builder: (context, snapshot) {
+                                                    final isFollowing =
+                                                        snapshot.data ?? false;
+                                                    return SizedBox(
+                                                      height: 30,
+                                                      child: ElevatedButton(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              isFollowing
+                                                              ? Colors.grey[200]
+                                                              : widgetColors
+                                                                    .followButton(),
+                                                          elevation: 0,
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 14,
+                                                              ),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  20,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        onPressed: () async {
+                                                          if (isFollowing) {
+                                                            await firestoreService
+                                                                .unfollowUser(
+                                                                  widget.UID,
+                                                                  currentUID,
+                                                                );
+                                                          } else {
+                                                            await firestoreService
+                                                                .followUser(
+                                                                  widget.UID,
+                                                                  currentUID,
+                                                                );
+                                                          }
+                                                        },
+                                                        child: Text(
+                                                          isFollowing
+                                                              ? 'กำลังติดตาม'
+                                                              : 'ติดตาม',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color: isFollowing
+                                                                ? Colors.black87
+                                                                : Colors.white,
+                                                          ),
                                                         ),
                                                       ),
-                                                    ],
+                                                    );
+                                                  },
+                                                ),
+                                                const SizedBox(width: 8),
+                                                PopupMenuButton<String>(
+                                                  icon: Icon(
+                                                    Icons.more_horiz,
+                                                    color: fontColor.textDark(),
+                                                    size: 28,
                                                   ),
+                                                  onSelected: (value) {
+                                                    if (value == 'report') {
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (context) =>
+                                                            ReportUserDialog(
+                                                              reportedUID:
+                                                                  widget.UID,
+                                                              reportedName:
+                                                                  userData.name,
+                                                              label:
+                                                                  'report_user',
+                                                            ),
+                                                      );
+                                                    }
+                                                    if (value == 'ban') {
+                                                      showDialog(
+                                                        context: context,
+                                                        builder: (context) =>
+                                                            ReportUserDialog(
+                                                              reportedUID:
+                                                                  widget.UID,
+                                                              reportedName:
+                                                                  userData.name,
+                                                              label: 'ban_user',
+                                                            ),
+                                                      );
+                                                    }
+                                                  },
+                                                  itemBuilder: (context) => [
+                                                    PopupMenuItem(
+                                                      value: 'report',
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.flag,
+                                                            color: fontColor
+                                                                .errorColor(),
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 8,
+                                                          ),
+                                                          Text(
+                                                            'รายงานผู้ใช้',
+                                                            style: TextStyle(
+                                                              color: fontColor
+                                                                  .errorColor(),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    if (widget
+                                                            .currentUserRole ==
+                                                        'admin')
+                                                      PopupMenuItem(
+                                                        value: 'ban',
+                                                        child: Row(
+                                                          children: [
+                                                            Icon(
+                                                              Icons.gavel,
+                                                              color: fontColor
+                                                                  .errorColor(),
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 8,
+                                                            ),
+                                                            Text(
+                                                              'ระงับบัญชี',
+                                                              style: TextStyle(
+                                                                color: fontColor
+                                                                    .errorColor(),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                  ],
                                                 ),
                                               ],
                                             ),

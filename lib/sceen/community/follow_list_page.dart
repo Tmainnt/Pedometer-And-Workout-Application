@@ -165,7 +165,8 @@ class _FollowListPageState extends State<FollowListPage> {
                   builder: (_) => ReportUserDialog(
                     reportedUID: user.UID,
                     reportedName: user.name,
-                    postId: "",
+                    postId: '',
+                    label: 'report_user',
                   ),
                 );
               },

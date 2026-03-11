@@ -79,6 +79,8 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
     final userUID = data['user_UID'] ?? 'N/A';
     final detail = data['detail'] ?? 'ไม่มีรายละเอียดเพิ่มเติม';
     final timestamp = data['create_timestamp'] as Timestamp?;
+    final reportByName = data['reportBy_name'] ?? 'N/A';
+    final reportByUID = data['reportBy_UID'] ?? 'N/A';
 
     final dateStr = timestamp != null
         ? "${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year} เวลา ${timestamp.toDate().hour.toString().padLeft(2, '0')}:${timestamp.toDate().minute.toString().padLeft(2, '0')} น."
@@ -109,6 +111,11 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
                 _buildDialogInfoRow('ประเภท', type),
                 _buildDialogInfoRow('เหตุผล', reason),
                 _buildDialogInfoRow('ผู้ถูกลงโทษ', userUID),
+                if (reportByUID != 'N/A' &&
+                    reportByUID.toString().isNotEmpty) ...[
+                  _buildDialogInfoRow('ผู้รายงาน', reportByName),
+                  _buildDialogInfoRow('UID ผู้รายงาน', reportByUID),
+                ],
                 _buildDialogInfoRow('วันที่', dateStr),
                 const SizedBox(height: 15),
                 const Text(
@@ -230,7 +237,6 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
               },
             ),
           ),
-
           Expanded(
             child: _sanctions.isEmpty && _isLoading
                 ? const Center(child: CircularProgressIndicator())
@@ -271,6 +277,8 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
                       final userUID = data['user_UID'] ?? 'N/A';
                       final detail = data['detail'] ?? '';
                       final timestamp = data['create_timestamp'] as Timestamp?;
+                      final reportByName = data['reportBy_name'] ?? 'N/A';
+                      final reportByUID = data['reportBy_UID'] ?? 'N/A';
 
                       final dateStr = timestamp != null
                           ? "${timestamp.toDate().day}/${timestamp.toDate().month}/${timestamp.toDate().year}"
@@ -307,9 +315,18 @@ class _AdminSanctionsPageState extends State<AdminSanctionsPage> {
                                     ),
                                   ),
                                 Text(
-                                  "ผู้ถูกลงโทษ (UID): $userUID",
+                                  "ผู้ถูกลงโทษ: $userUID",
                                   style: const TextStyle(fontSize: 12),
                                 ),
+                                if (reportByUID != 'N/A' &&
+                                    reportByUID.toString().isNotEmpty)
+                                  Text(
+                                    "ผู้รายงาน: $reportByName",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.deepPurple,
+                                    ),
+                                  ),
                                 if (dateStr.isNotEmpty)
                                   Text(
                                     "วันที่: $dateStr",

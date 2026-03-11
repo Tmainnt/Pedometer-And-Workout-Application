@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
-import 'package:pedometer_application/models/report.dart';
+import 'package:pedometer_application/models/community/report.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
 import 'package:pedometer_application/widget/community/report_card.dart';
 
@@ -18,7 +18,7 @@ class AdminReportsPage extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'รายงานโพสต์',
+              'รายงาน',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,

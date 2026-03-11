@@ -12,6 +12,7 @@ class CommentTile extends StatefulWidget {
   final String postId;
   final String commentId;
   final bool isReply;
+  final String currentUserName;
   final VoidCallback onProfileTap;
   final Function(String, String) onReplyTap;
   final Function(String, String, String) onEditTap;
@@ -23,6 +24,7 @@ class CommentTile extends StatefulWidget {
     required this.postId,
     required this.commentId,
     required this.isReply,
+    required this.currentUserName,
     required this.onProfileTap,
     required this.onReplyTap,
     required this.onEditTap,
@@ -34,6 +36,89 @@ class CommentTile extends StatefulWidget {
 
 class _CommentTileState extends State<CommentTile> {
   bool isExpanded = false;
+
+  void _showCommentOptions(
+    BuildContext context,
+    String commentUID,
+    String name,
+    String content,
+    String imageUrl,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(15)),
+      ),
+      builder: (bottomSheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            if (commentUID == widget.currentUID) ...[
+              ListTile(
+                leading: const Icon(Icons.edit, color: Colors.black87),
+                title: const Text('แก้ไขคอมเมนต์'),
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  widget.onEditTap(widget.commentId, content, imageUrl);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.redAccent),
+                title: const Text(
+                  'ลบคอมเมนต์',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+                  FirestoreService().deleteComment(
+                    widget.postId,
+                    widget.commentId,
+                  );
+                },
+              ),
+            ] else ...[
+              ListTile(
+                leading: const Icon(Icons.flag, color: Colors.redAccent),
+                title: const Text(
+                  'รายงานคอมเมนต์นี้',
+                  style: TextStyle(color: Colors.redAccent),
+                ),
+                onTap: () {
+                  Navigator.pop(bottomSheetContext);
+
+                  showDialog(
+                    context: context,
+                    builder: (_) => ReportUserDialog(
+                      reportedUID: commentUID,
+                      reportedName: name,
+                      postId: widget.postId,
+                      reporterUID: widget.currentUID,
+                      reporterName: widget.currentUserName,
+                      label: 'report_comment',
+                      commentId: widget.commentId,
+                      commentText: content,
+                    ),
+                  );
+                },
+              ),
+            ],
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,207 +174,129 @@ class _CommentTileState extends State<CommentTile> {
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  GestureDetector(
-                                    onTap: widget.onProfileTap,
-                                    child: Text(
-                                      name,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
+                        GestureDetector(
+                          onLongPress: () {
+                            _showCommentOptions(
+                              context,
+                              commentUID,
+                              name,
+                              content,
+                              imageUrl,
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                GestureDetector(
+                                  onTap: widget.onProfileTap,
+                                  child: Text(
+                                    name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
                                     ),
                                   ),
-                                  if (commentUID == widget.currentUID)
-                                    GestureDetector(
-                                      onTap: () {
-                                        showModalBottomSheet(
-                                          context: context,
-                                          builder: (bottomSheetContext) =>
-                                              SafeArea(
-                                                child: Column(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    ListTile(
-                                                      leading: const Icon(
-                                                        Icons.edit,
-                                                      ),
-                                                      title: const Text(
-                                                        'แก้ไขคอมเมนต์',
-                                                      ),
-                                                      onTap: () {
-                                                        Navigator.pop(
-                                                          bottomSheetContext,
-                                                        );
-                                                        widget.onEditTap(
-                                                          widget.commentId,
-                                                          content,
-                                                          imageUrl,
-                                                        );
-                                                      },
-                                                    ),
-                                                    ListTile(
-                                                      leading: const Icon(
-                                                        Icons.delete,
-                                                        color: Colors.redAccent,
-                                                      ),
-                                                      title: const Text(
-                                                        'ลบคอมเมนต์',
-                                                        style: TextStyle(
-                                                          color:
-                                                              Colors.redAccent,
-                                                        ),
-                                                      ),
-                                                      onTap: () {
-                                                        Navigator.pop(
-                                                          bottomSheetContext,
-                                                        );
-                                                        FirestoreService()
-                                                            .deleteComment(
-                                                              widget.postId,
-                                                              widget.commentId,
-                                                            );
-                                                      },
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                        );
-                                      },
-                                      child: const Icon(
-                                        Icons.more_horiz,
-                                        size: 18,
-                                        color: Colors.grey,
-                                      ),
-                                    )
-                                  else
-                                    GestureDetector(
-                                      onTap: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (_) => ReportUserDialog(
-                                            reportedUID: commentUID,
-                                            reportedName: name,
-                                            postId: widget.postId,
-                                            commentId: widget.commentId,
-                                            commentText: content,
-                                          ),
-                                        );
-                                      },
-                                      child: const Icon(
-                                        Icons.more_horiz,
-                                        size: 18,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                ],
-                              ),
+                                ),
 
-                              if (content.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final textSpan = TextSpan(
-                                      children: [
-                                        if (replyToName != null &&
-                                            replyToName.isNotEmpty)
+                                if (content.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final textSpan = TextSpan(
+                                        children: [
+                                          if (replyToName != null &&
+                                              replyToName.isNotEmpty)
+                                            TextSpan(
+                                              text: '@$replyToName ',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.blueAccent,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
                                           TextSpan(
-                                            text: '@$replyToName ',
+                                            text: content,
                                             style: const TextStyle(
                                               fontSize: 14,
-                                              color: Colors.blueAccent,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        TextSpan(
-                                          text: content,
-                                          style: const TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                      ],
-                                    );
-
-                                    final tp = TextPainter(
-                                      text: textSpan,
-                                      maxLines: 5,
-                                      textDirection: TextDirection.ltr,
-                                    );
-                                    tp.layout(maxWidth: constraints.maxWidth);
-
-                                    if (tp.didExceedMaxLines) {
-                                      return Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          RichText(
-                                            text: textSpan,
-                                            maxLines: isExpanded ? null : 5,
-                                            overflow: isExpanded
-                                                ? TextOverflow.visible
-                                                : TextOverflow.ellipsis,
-                                          ),
-                                          GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                isExpanded = !isExpanded;
-                                              });
-                                            },
-                                            child: Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 4.0,
-                                              ),
-                                              child: Text(
-                                                isExpanded
-                                                    ? 'ย่อลง'
-                                                    : 'เพิ่มเติม...',
-                                                style: const TextStyle(
-                                                  color: Colors.blueAccent,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
+                                              color: Colors.black87,
                                             ),
                                           ),
                                         ],
                                       );
-                                    } else {
-                                      return RichText(text: textSpan);
-                                    }
-                                  },
-                                ),
-                              ],
 
-                              if (imageUrl.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    imageUrl,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) =>
-                                        const Icon(Icons.broken_image),
+                                      final tp = TextPainter(
+                                        text: textSpan,
+                                        maxLines: 5,
+                                        textDirection: TextDirection.ltr,
+                                      );
+                                      tp.layout(maxWidth: constraints.maxWidth);
+
+                                      if (tp.didExceedMaxLines) {
+                                        return Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            RichText(
+                                              text: textSpan,
+                                              maxLines: isExpanded ? null : 5,
+                                              overflow: isExpanded
+                                                  ? TextOverflow.visible
+                                                  : TextOverflow.ellipsis,
+                                            ),
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  isExpanded = !isExpanded;
+                                                });
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                  top: 4.0,
+                                                ),
+                                                child: Text(
+                                                  isExpanded
+                                                      ? 'ย่อลง'
+                                                      : 'เพิ่มเติม...',
+                                                  style: const TextStyle(
+                                                    color: Colors.blueAccent,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      } else {
+                                        return RichText(text: textSpan);
+                                      }
+                                    },
                                   ),
-                                ),
+                                ],
+
+                                if (imageUrl.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      imageUrl,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          const Icon(Icons.broken_image),
+                                    ),
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
                         ),
                         if (totalLike > 0)

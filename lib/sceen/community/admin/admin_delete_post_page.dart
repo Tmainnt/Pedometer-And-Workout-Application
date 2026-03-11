@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/models/post.dart';
+import 'package:pedometer_application/models/community/post.dart';
 import 'package:pedometer_application/services/firestore_service.dart';
 import 'package:pedometer_application/theme/font_color.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
@@ -32,7 +32,7 @@ class _AdminDeleteReasonPageState extends State<AdminDeleteReasonPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'แก้ไขโปรไฟล์',
+          'รายงานการลบโพสต์',
           style: TextStyle(color: fontColor.generalTextDarkTheme()),
         ),
         centerTitle: true,

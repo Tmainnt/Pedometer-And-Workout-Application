@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/models/feeling.dart';
+import 'package:pedometer_application/models/community/feeling.dart';
 import 'package:pedometer_application/theme/font_color.dart';
 import 'package:pedometer_application/theme/widget_colors.dart';
 
