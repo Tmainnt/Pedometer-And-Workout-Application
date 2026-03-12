@@ -18,11 +18,23 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _selectedIndex = 0;
+  bool _isRunning = false;
 
   final String uid = FirebaseAuth.instance.currentUser!.uid;
 
   late final List<Widget> _pages = [
-    const HomePage(),
+
+    HomePage(
+      onRunningStateChanged: (isRunning) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _isRunning != isRunning) {
+            setState(() {
+              _isRunning = isRunning;
+            });
+          }
+        });
+      },
+    ),
     const HistoryPage(),
     const WorkoutPage(),
     const CommunityPage(),
@@ -32,8 +44,12 @@ class _MainWrapperState extends State<MainWrapper> {
 
   @override
   Widget build(BuildContext context) {
+    bool shouldHideAppBar = _selectedIndex == 0 && _isRunning;
+
     return Scaffold(
-      appBar: PedometerAppBar(title: 'Pedometer', subtitle: '& Workout'),
+      appBar: shouldHideAppBar 
+          ? null 
+          : const PedometerAppBar(title: 'Pedometer', subtitle: '& Workout'),
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavbar(
         currentIndex: _selectedIndex,

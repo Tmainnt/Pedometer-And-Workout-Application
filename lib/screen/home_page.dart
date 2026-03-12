@@ -8,7 +8,9 @@ import 'package:pedometer_application/widget/home/running_overlay.dart';
 import 'package:pedometer_application/widget/home/running_map_card.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final Function(bool)? onRunningStateChanged;
+
+  const HomePage({super.key, this.onRunningStateChanged});
 
   @override
   State<StatefulWidget> createState() => HomePageState();
@@ -22,6 +24,12 @@ class HomePageState extends State<HomePage> {
     super.initState();
     _controller.signInAnonymously();
     _controller.addListener(() {
+      final bool isRunning =
+          _controller.runStatus == RunStatus.running ||
+          _controller.runStatus == RunStatus.paused;
+        
+      widget.onRunningStateChanged?.call(isRunning);
+
       if (mounted) setState(() {});
     });
   }
