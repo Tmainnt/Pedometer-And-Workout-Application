@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pedometer_application/controller/run_detail_controller.dart';
-import 'package:pedometer_application/widget/navbar/pedometer_app_bar.dart';
+import 'package:pedometer_application/widget/navbar/app_bar_detail_page.dart';
 import 'package:pedometer_application/widget/run_detail/run_bottom_stat_item.dart';
 import 'package:pedometer_application/widget/run_detail/run_chart_item.dart';
 import 'package:pedometer_application/widget/run_detail/run_detail_map.dart';
@@ -16,7 +16,7 @@ class RunDetailPage extends StatelessWidget {
     final controller = RunDetailController(runData);
 
     return Scaffold(
-      appBar: PedometerAppBar(),
+      appBar: AppBarDetailPage(title: 'รายละเอียดการวิ่ง'),
       body: SingleChildScrollView(
         child: Column(
           children: [
