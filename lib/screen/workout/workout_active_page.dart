@@ -30,6 +30,9 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
   int totalSecondsElapsed = 0;
   Timer? _timer;
 
+  int _actualBurnedCalories = 0;
+  int _completedSteps = 0;
+
   int currentStepRemainingSeconds = 0;
 
   @override
@@ -39,12 +42,18 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
   }
 
   Future<void> _initializeVideo(String url) async {
-    await _videoController?.dispose();
-    _videoController = null;
-    _videoFinishedHandled = false;
+    final oldController = _videoController;
+
+    setState(() {
+      _videoController = null;
+      _videoFinishedHandled = false;
+    });
+
+    if (oldController != null) {
+      await oldController.dispose();
+    }
 
     if (url.isEmpty) {
-      if (mounted) setState(() {});
       return;
     }
 
@@ -71,6 +80,7 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
       });
 
       if (!mounted) return;
+
       setState(() {
         _videoController = controller;
       });
@@ -183,7 +193,7 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
 
       _isChangingStep = false;
     } else {
-      _finishWorkout();
+      _finishWorkout(isNaturalFinish: true);
     }
   }
 
@@ -201,9 +211,23 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
     _isChangingStep = false;
   }
 
-  void _finishWorkout() {
+  void _finishWorkout({bool isNaturalFinish = false}) {
     _timer?.cancel();
+
+    double expectedSeconds = widget.workout.duration * 60.0;
+    double progress = expectedSeconds > 0
+        ? (totalSecondsElapsed / expectedSeconds)
+        : 1.0;
+
+    if (progress > 1.0) progress = 1.0;
+
+    int calculatedCalories = (widget.workout.workoutName.isNotEmpty)
+        ? (widget.workout.calories * progress).round()
+        : 0;
+
     setState(() {
+      _actualBurnedCalories = calculatedCalories;
+      _completedSteps = isNaturalFinish ? steps.length : currentIndex;
       isCompleted = true;
     });
   }
@@ -219,21 +243,8 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
     }
 
     try {
-      double expectedSeconds = widget.workout.duration * 60.0;
-      double progress = expectedSeconds > 0
-          ? (totalSecondsElapsed / expectedSeconds)
-          : 1.0;
-
-      int burnedCalories = (widget.workout.workoutName.isNotEmpty)
-          ? (widget.workout.calories * progress).round()
-          : 0;
-
-      if (burnedCalories > widget.workout.calories) {
-        burnedCalories = widget.workout.calories;
-      }
-
       final historyData = {
-        'calories_burned': burnedCalories,
+        'calories_burned': _actualBurnedCalories,
         'duration': totalSecondsElapsed,
         'complete_timestamp': FieldValue.serverTimestamp(),
         'workout_uid': widget.workout.id,
@@ -284,7 +295,7 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
                   backgroundColor: Colors.white.withOpacity(0.8),
                   child: IconButton(
                     icon: const Icon(Icons.close, color: Colors.black),
-                    onPressed: _finishWorkout,
+                    onPressed: () => _finishWorkout(isNaturalFinish: false),
                   ),
                 ),
               ),
@@ -459,9 +470,12 @@ class _WorkoutActivePageState extends State<WorkoutActivePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStatCol("${steps.length}", "จำนวนท่า"),
+                    _buildStatCol(
+                      "$_completedSteps/${steps.length}",
+                      "จำนวนท่า",
+                    ),
                     Container(width: 1, height: 40, color: Colors.grey[300]),
-                    _buildStatCol("${widget.workout.calories}", "แคลอรี่"),
+                    _buildStatCol("$_actualBurnedCalories", "แคลอรี่"),
                     Container(width: 1, height: 40, color: Colors.grey[300]),
                     _buildStatCol(_formatTime(totalSecondsElapsed), "ระยะเวลา"),
                   ],

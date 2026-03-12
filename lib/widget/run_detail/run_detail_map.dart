@@ -17,7 +17,9 @@ class RunDetailMap extends StatelessWidget {
         Marker(
           markerId: const MarkerId('start'),
           position: points.first,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueGreen,
+          ),
           infoWindow: const InfoWindow(title: 'จุดเริ่มต้น'),
         ),
       );
@@ -54,6 +56,7 @@ class RunDetailMap extends StatelessWidget {
             endCap: Cap.roundCap,
           ),
         },
+        myLocationEnabled: true,
         zoomControlsEnabled: false,
         mapToolbarEnabled: false,
         myLocationButtonEnabled: false,
