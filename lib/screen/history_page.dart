@@ -36,41 +36,44 @@ class _HistoryPageState extends State<HistoryPage> {
     }
 
     return Scaffold(
-      body: CustomScrollView(
-        // 🟢 ลบ StreamBuilder ของเก่าที่ครอบอยู่ทิ้งไปได้เลย
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverToBoxAdapter(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 🟢 ใช้ค่าจาก Controller ที่คำนวณสดตาม Filter
-                  WeeklySummaryCard(
-                    distance: _controller.filteredDistance,
-                    seconds: _controller.filteredDuration,
-                    cal: _controller.filteredCalories,
-                    count: _controller.trueRunsCount,
-                  ),
-                  const SizedBox(height: 25),
-                  HistoryFilterBar(controller: _controller),
-                ],
+      body: RefreshIndicator(
+        onRefresh: () async => setState(() {}),
+        child: CustomScrollView(
+          // 🟢 ลบ StreamBuilder ของเก่าที่ครอบอยู่ทิ้งไปได้เลย
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.all(20),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🟢 ใช้ค่าจาก Controller ที่คำนวณสดตาม Filter
+                    WeeklySummaryCard(
+                      distance: _controller.filteredDistance,
+                      seconds: _controller.filteredDuration,
+                      cal: _controller.filteredCalories,
+                      count: _controller.trueRunsCount,
+                    ),
+                    const SizedBox(height: 25),
+                    HistoryFilterBar(controller: _controller),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          HistoryListContent(controller: _controller),
+            HistoryListContent(controller: _controller),
 
-          SliverToBoxAdapter(
-            child: PaginationBar(
-              totalPages: _controller.totalPages,
-              currentPage: _controller.currentPage,
-              isLoading: _controller.isLoading,
-              onPageChanged: _controller.goToPage,
+            SliverToBoxAdapter(
+              child: PaginationBar(
+                totalPages: _controller.totalPages,
+                currentPage: _controller.currentPage,
+                isLoading: _controller.isLoading,
+                onPageChanged: _controller.goToPage,
+              ),
             ),
-          ),
-          const SliverToBoxAdapter(child: SizedBox(height: 40)),
-        ],
+            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          ],
+        ),
       ),
     );
   }
