@@ -23,7 +23,6 @@ class _MainWrapperState extends State<MainWrapper> {
   final String uid = FirebaseAuth.instance.currentUser!.uid;
 
   late final List<Widget> _pages = [
-
     HomePage(
       onRunningStateChanged: (isRunning) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -47,9 +46,7 @@ class _MainWrapperState extends State<MainWrapper> {
     bool shouldHideAppBar = _selectedIndex == 0 && _isRunning;
 
     return Scaffold(
-      appBar: shouldHideAppBar 
-          ? null 
-          : const PedometerAppBar(title: 'Pedometer', subtitle: '& Workout'),
+      appBar: shouldHideAppBar ? null : PedometerAppBar(),
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavbar(
         currentIndex: _selectedIndex,

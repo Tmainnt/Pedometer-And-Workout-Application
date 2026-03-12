@@ -16,10 +16,6 @@ class RunDetailPage extends StatelessWidget {
     final controller = RunDetailController(runData);
 
     return Scaffold(
-      appBar: const PedometerAppBar(
-        title: 'รายละเอียดการวิ่ง',
-        isDetailPage: true,
-      ),
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -56,7 +52,6 @@ class RunDetailPage extends StatelessWidget {
                             ),
                           ),
                         ),
-                       
                       ],
                     ),
                     const SizedBox(height: 25),
