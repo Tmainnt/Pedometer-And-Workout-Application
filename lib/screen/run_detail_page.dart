@@ -16,6 +16,7 @@ class RunDetailPage extends StatelessWidget {
     final controller = RunDetailController(runData);
 
     return Scaffold(
+      appBar: PedometerAppBar(),
       body: SingleChildScrollView(
         child: Column(
           children: [
