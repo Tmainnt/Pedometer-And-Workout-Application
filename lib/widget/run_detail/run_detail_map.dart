@@ -57,7 +57,7 @@ class RunDetailMap extends StatelessWidget {
           ),
         },
         myLocationEnabled: true,
-        zoomControlsEnabled: false,
+        zoomControlsEnabled: true,
         mapToolbarEnabled: false,
         myLocationButtonEnabled: false,
       ),

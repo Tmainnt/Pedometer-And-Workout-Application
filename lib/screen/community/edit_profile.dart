@@ -33,6 +33,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   String? profileUrl;
   String? backgroundUrl;
 
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -106,31 +108,48 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> saveProfile() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
+    setState(() {
+      _isLoading = true;
+    });
 
-    String name = _nameController.text;
-    String bio = _bioController.text;
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    int age = int.tryParse(_ageController.text) ?? 0;
-    int height = int.tryParse(_heightController.text) ?? 0;
-    int weight = int.tryParse(_weightController.text) ?? 0;
+      String name = _nameController.text;
+      String bio = _bioController.text;
 
-    await _firestoreService.updateUserProfile(
-      uid: uid,
-      name: name,
-      bio: bio,
-      age: age,
-      height: height,
-      weight: weight,
-      profileImage: _profileImage,
-      backgroundImage: _backgroundImage,
-      networkProfileImage: profileUrl,
-      networkBackgroundImage: backgroundUrl,
-      oldProfileUrl: widget.user.phoUrl,
-      oldBackgroundUrl: widget.user.backgroundImage,
-    );
+      int age = int.tryParse(_ageController.text) ?? 0;
+      int height = int.tryParse(_heightController.text) ?? 0;
+      int weight = int.tryParse(_weightController.text) ?? 0;
 
-    Navigator.pop(context);
+      print('start save profile');
+
+      await _firestoreService.updateUserProfile(
+        uid: uid,
+        name: name,
+        bio: bio,
+        age: age,
+        height: height,
+        weight: weight,
+        profileImage: _profileImage,
+        backgroundImage: _backgroundImage,
+        networkProfileImage: profileUrl,
+        networkBackgroundImage: backgroundUrl,
+        oldProfileUrl: widget.user.phoUrl,
+        oldBackgroundUrl: widget.user.backgroundImage,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      print('error saving profile $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   Widget buildTextField(
@@ -231,10 +250,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       backgroundColor: widgetColors.confirmButton(),
                     ),
                     onPressed: saveProfile,
-                    child: Text(
-                      "บันทึก",
-                      style: TextStyle(color: Colors.white),
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3,
+                            ),
+                          )
+                        : const Text(
+                            "บันทึก",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ],
               ),
