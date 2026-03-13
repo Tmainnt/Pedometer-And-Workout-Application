@@ -267,7 +267,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       fit: BoxFit.cover,
                     )
                   : const DecorationImage(
-                      image: AssetImage("assets/testBackgroundImage.png"),
+                      image: AssetImage("assets/default_background.png"),
                       fit: BoxFit.cover,
                     ),
             ),
@@ -296,7 +296,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ? FileImage(_profileImage!)
                   : profileUrl != null && profileUrl!.isNotEmpty
                   ? NetworkImage(profileUrl!)
-                  : const AssetImage("assets/testProfile.jpg") as ImageProvider,
+                  : const AssetImage("assets/default_profile.png")
+                        as ImageProvider,
             ),
           ),
         ),
