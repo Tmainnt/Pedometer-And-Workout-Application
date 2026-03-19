@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pedometer_application/controller/home_controller.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 🟢 อย่าลืม import
 import 'package:pedometer_application/utils/run_status.dart';
 import 'package:pedometer_application/widget/home/health_stats_card.dart';
 import 'package:pedometer_application/widget/home/main_tracking_card.dart';
@@ -7,106 +7,91 @@ import 'package:pedometer_application/widget/home/run_action_button.dart';
 import 'package:pedometer_application/widget/home/running_overlay.dart';
 import 'package:pedometer_application/widget/home/running_map_card.dart';
 
-class HomePage extends StatefulWidget {
+// 🟢 Import Provider ของคุณให้ถูก path นะครับ
+import 'package:pedometer_application/provider/home_provider.dart'; 
+
+class HomePage extends ConsumerWidget {
   final Function(bool)? onRunningStateChanged;
 
   const HomePage({super.key, this.onRunningStateChanged});
 
   @override
-  State<StatefulWidget> createState() => HomePageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 🟢 1. ดึงแค่ Notifier มาเตรียมไว้เรียกฟังก์ชัน (ไม่ทำให้หน้าจออัปเดต)
+    final notifier = ref.read(homeProvider.notifier);
 
-class HomePageState extends State<HomePage> {
-  final HomeController _controller = HomeController();
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.signInAnonymously();
-    _controller.addListener(() {
-      final bool isRunning =
-          _controller.runStatus == RunStatus.running ||
-          _controller.runStatus == RunStatus.paused;
-        
-      widget.onRunningStateChanged?.call(isRunning);
-
-      if (mounted) setState(() {});
+    // 🟢 2. ดักฟัง Event เปลี่ยนแปลงสถานะ (เพื่อส่งกลับไปให้ MainWrapper ซ่อน NavBar)
+    ref.listen(homeProvider.select((s) => s.runStatus), (previous, current) {
+      final bool isRunning = current == RunStatus.running || current == RunStatus.paused;
+      onRunningStateChanged?.call(isRunning);
     });
-  }
 
-  @override
-  void dispose() {
-    _controller.stopService();
-    _controller.dispose();
-    super.dispose();
-  }
+    // 🟢 3. ดึงเฉพาะสถานะ "การวิ่ง" มาคุม Layout หลัก 
+    // (ตัวแปรนี้จะเปลี่ยนแค่ตอนกดปุ่ม Start/Stop หน้าจอหลักจึงถูกวาดใหม่แค่ตอนกดปุ่ม)
+    final runStatus = ref.watch(homeProvider.select((s) => s.runStatus));
+    final bool isRunning = runStatus == RunStatus.running || runStatus == RunStatus.paused;
 
-  @override
-  Widget build(BuildContext context) {
-    // เช็คสถานะการวิ่งเพื่อสลับ UI
-    final bool isRunning =
-        _controller.runStatus == RunStatus.running ||
-        _controller.runStatus == RunStatus.paused;
-
-    // หาความสูงของหน้าจอเพื่อใช้คำนวณจุดซ่อน/แสดงของ Animation
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // ซ่อน AppBar เมื่อวิ่ง (จะถูกแทนที่ด้วยพื้นที่แผนที่เต็มจอ)
       body: Stack(
         fit: StackFit.expand,
         children: [
           // ------------------------------------------------------------------
-          // เลเยอร์ที่ 1: หน้าจอปกติ (ให้จางหายไปอย่างนุ่มนวลตอนเริ่มวิ่ง)
+          // เลเยอร์ที่ 1: หน้าจอปกติ
           // ------------------------------------------------------------------
           AnimatedOpacity(
             duration: const Duration(milliseconds: 400),
             opacity: isRunning ? 0.0 : 1.0,
             child: IgnorePointer(
-              // ป้องกันการเผลอกดโดนปุ่มตอนที่เลเยอร์นี้ล่องหนอยู่
               ignoring: isRunning,
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    MainTrackingCard(
-                      // 🟢 สลับข้อมูลระยะทาง: วิ่งอยู่ใช้ current ไม่วิ่งใช้ daily
-                      distance: isRunning
-                          ? _controller.currentDistanceKm
-                          : _controller.dailyDistanceKm,
+                    // 🎯 ใช้ Consumer ครอบ MainTrackingCard ให้อัปเดตแค่ตรงนี้ทุกวินาที
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final currentDistance = ref.watch(homeProvider.select((s) => s.currentDistanceKm));
+                        final dailyDistance = ref.watch(homeProvider.select((s) => s.dailyDistanceKm));
+                        final paceStr = ref.watch(homeProvider.select((s) => s.currentPace));
+                        final currentSec = ref.watch(homeProvider.select((s) => s.currentSeconds));
+                        final dailySec = ref.watch(homeProvider.select((s) => s.dailySeconds));
+                        final polylines = ref.watch(homeProvider.select((s) => s.polylines));
+                        final currentLatLng = ref.watch(homeProvider.select((s) => s.currentLatLng));
+                        final isSaving = ref.watch(homeProvider.select((s) => s.isSaving));
 
-                      // 🟢 สลับข้อมูล Pace: วิ่งอยู่ใช้ current ไม่วิ่งให้เป็น 0.0
-                      pace: isRunning
-                          ? (double.tryParse(
-                                  _controller.currentPace.replaceAll(':', '.'),
-                                ) ??
-                                0.0)
-                          : 0.0,
-
-                      // 🟢 สลับข้อมูลเวลา: วิ่งอยู่ใช้ current ไม่วิ่งให้เป็น 0
-                      totalSeconds: isRunning
-                          ? _controller.currentSeconds
-                          : _controller.dailySeconds,
-
-                      polylines: _controller.polylines,
-                      currentPosition: _controller.currentLatLng,
-                      actionButton: RunActionButtons(
-                        runStatus: _controller.runStatus,
-                        isSaving: _controller.isSaving,
-                        onStart: _controller.startRunning,
-                        onPause: _controller.pauseRunning,
-                        onResume: _controller.resumeRunning,
-                        onStop: _controller.stopAndSaveRunning,
-                      ),
-
-                      isRunning: isRunning,
+                        return MainTrackingCard(
+                          distance: isRunning ? currentDistance : dailyDistance,
+                          pace: isRunning ? (double.tryParse(paceStr.replaceAll(':', '.')) ?? 0.0) : 0.0,
+                          totalSeconds: isRunning ? currentSec : dailySec,
+                          polylines: polylines,
+                          currentPosition: currentLatLng,
+                          actionButton: RunActionButtons(
+                            runStatus: runStatus,
+                            isSaving: isSaving,
+                            onStart: notifier.startRunning,
+                            onPause: notifier.pauseRunning,
+                            onResume: notifier.resumeRunning,
+                            onStop: notifier.stopAndSaveRunning,
+                          ),
+                          isRunning: isRunning,
+                        );
+                      },
                     ),
-                    HealthStatsCard(
-                      elevation: _controller.currentElevationGain,
-                      // 🟢 สลับข้อมูลก้าวเดิน: วิ่งอยู่ใช้ current ไม่วิ่งใช้ daily
-                      steps: isRunning
-                          ? _controller.currentSteps
-                          : _controller.dailySteps,
+                    
+                    // 🎯 ใช้ Consumer ครอบ HealthStatsCard 
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final elevation = ref.watch(homeProvider.select((s) => s.currentElevationGain));
+                        final currentSteps = ref.watch(homeProvider.select((s) => s.currentSteps));
+                        final dailySteps = ref.watch(homeProvider.select((s) => s.dailySteps));
+
+                        return HealthStatsCard(
+                          elevation: elevation,
+                          steps: isRunning ? currentSteps : dailySteps,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -119,17 +104,23 @@ class HomePageState extends State<HomePage> {
           // ------------------------------------------------------------------
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
-            curve: Curves.easeInOutCubic, // ทำให้การเคลื่อนที่ลื่นไหล
-            // ถ้าไม่ได้วิ่ง ให้ลอยอยู่เหนือหน้าจอ (-screenHeight)
+            curve: Curves.easeInOutCubic,
             top: isRunning ? 0 : -screenHeight,
             bottom: isRunning ? 0 : screenHeight,
             left: 0,
             right: 0,
-            child: RunningMapCard(
-              polylines: _controller.polylines,
-              currentPosition: _controller.currentLatLng,
-              // ให้เป็นโหมดเต็มจอตลอดเวลาเพื่อรองรับการสไลด์
-              isFullScreen: true,
+            // 🎯 ใช้ Consumer ครอบแผนที่ ให้อัปเดตแค่ตอนพิกัด/เส้นทางเปลี่ยน
+            child: Consumer(
+              builder: (context, ref, child) {
+                final polylines = ref.watch(homeProvider.select((s) => s.polylines));
+                final currentLatLng = ref.watch(homeProvider.select((s) => s.currentLatLng));
+
+                return RunningMapCard(
+                  polylines: polylines,
+                  currentPosition: currentLatLng,
+                  isFullScreen: true,
+                );
+              },
             ),
           ),
 
@@ -139,26 +130,30 @@ class HomePageState extends State<HomePage> {
           AnimatedPositioned(
             duration: const Duration(milliseconds: 600),
             curve: Curves.easeOutCubic,
-            // ถ้าไม่ได้วิ่ง ให้ซ่อนอยู่ใต้ขอบจอด้านล่าง (-500)
             bottom: isRunning ? 0 : -500,
             left: 0,
             right: 0,
-            child: RunningOverlay(
-              isRunning: isRunning,
-              // 🟢 เลเยอร์นี้โชว์เฉพาะตอนวิ่งอยู่แล้ว ใช้ current ได้เลยทั้งหมด
-              distance: _controller.currentDistanceKm,
-              pace:
-                  double.tryParse(
-                    _controller.currentPace.replaceAll(':', '.'),
-                  ) ??
-                  0.0,
-              totalSeconds: _controller.currentSeconds,
-              runStatus: _controller.runStatus,
-              isSaving: _controller.isSaving,
-              onStart: _controller.startRunning,
-              onPause: _controller.pauseRunning,
-              onResume: _controller.resumeRunning,
-              onStop: _controller.stopAndSaveRunning,
+            // 🎯 ใช้ Consumer ครอบ Overlay ให้ตัวเลขเวลา/ระยะทางวิ่งเฉพาะตรงนี้
+            child: Consumer(
+              builder: (context, ref, child) {
+                final distance = ref.watch(homeProvider.select((s) => s.currentDistanceKm));
+                final paceStr = ref.watch(homeProvider.select((s) => s.currentPace));
+                final seconds = ref.watch(homeProvider.select((s) => s.currentSeconds));
+                final isSaving = ref.watch(homeProvider.select((s) => s.isSaving));
+
+                return RunningOverlay(
+                  isRunning: isRunning,
+                  distance: distance,
+                  pace: double.tryParse(paceStr.replaceAll(':', '.')) ?? 0.0,
+                  totalSeconds: seconds,
+                  runStatus: runStatus,
+                  isSaving: isSaving,
+                  onStart: notifier.startRunning,
+                  onPause: notifier.pauseRunning,
+                  onResume: notifier.resumeRunning,
+                  onStop: notifier.stopAndSaveRunning,
+                );
+              },
             ),
           ),
         ],
